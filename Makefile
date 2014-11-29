@@ -1,4 +1,4 @@
-.PHONY: clean compile_api dist_api image_api
+.PHONY: clean compile_api dist_api image_api start_api stop_api
 
 # Generally, this compiles go using a build container and then builds docker images with the results 
 
@@ -22,7 +22,6 @@ DKR_BUILD := $(DKR_COMMAND) $(BUILD_TAG)
 # The prefix for running commands in the docker client container
 DKR_CLIENT  := $(DKR_COMMAND) $(DOCKER_CLIENT_TAG)
 
-
 all: image_api
 
 clean: stop_api
@@ -37,7 +36,7 @@ dist_api: compile_api
 
 image_api: dist_api
 	$(DKR_CLIENT) /skellago/scripts/container/prepare_image.sh /skellago/containers/api /skellago/dist/api-artifact.tar.gz /skellago/deploy/containers/api
-	$(DKR_CLIENT) docker build --rm -t $(API_TAG) /skellago/deploy/containers/api
+	$(DKR_CLIENT) docker build -q --rm -t $(API_TAG) /skellago/deploy/containers/api
 
 start_api: stop_api
 	docker run -d -p 9000:9000 $(API_TAG)
