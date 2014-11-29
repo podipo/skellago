@@ -40,7 +40,7 @@ image_api: dist_api
 	$(DKR_CLIENT) docker build --rm -t $(API_TAG) /skellago/deploy/containers/api
 
 start_api: stop_api
-	docker run -d -p 8000:8000 $(API_TAG)
+	docker run -d -p 9000:9000 $(API_TAG)
 
 stop_api:
 	scripts/container_by_image.sh stop $(API_TAG)

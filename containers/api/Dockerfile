@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update -y
 
-EXPOSE 8000
+EXPOSE 9000
 
 ADD ./start.sh /skellago/start.sh
 ADD ./api-artifact.tar.gz /opt/root

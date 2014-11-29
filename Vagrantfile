@@ -18,7 +18,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 	    docko.vm.box = "yungsang/boot2docker"
 	    docko.vm.box_version = "= 1.3.1"
 
-		MapPort(docko.vm, 8000) # api service
+		MapPort(docko.vm, 9000) # api service
 
 		docko.vm.network "private_network", ip: "192.168.33.10"
 		docko.vm.synced_folder "~", ENV['HOME'], type: "nfs"
