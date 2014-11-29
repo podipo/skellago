@@ -1,0 +1,6 @@
+.vagrant
+deploy
+dist
+go/bin
+go/pkg
+
