@@ -6,4 +6,4 @@
 ACTION=$1
 IMAGE_NAME=$2
 
-docker ps | grep $IMAGE_NAME | awk '{print $1}' | xargs docker $ACTION
+docker ps -a | grep $IMAGE_NAME | awk '{print $1}' | xargs docker $ACTION

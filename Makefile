@@ -37,10 +37,11 @@ dist_api: compile_api
 
 image_api: dist_api
 	$(DKR_CLIENT) /skellago/scripts/container/prepare_image.sh /skellago/containers/api /skellago/dist/api-artifact.tar.gz /skellago/deploy/containers/api
-	$(DKR_CLIENT) docker build -t $(API_TAG) /skellago/deploy/containers/api
+	$(DKR_CLIENT) docker build --rm -t $(API_TAG) /skellago/deploy/containers/api
 
-start_api: image_api
+start_api: stop_api
 	docker run -d -p 8000:8000 $(API_TAG)
 
 stop_api:
 	scripts/container_by_image.sh stop $(API_TAG)
+	scripts/container_by_image.sh rm $(API_TAG)
