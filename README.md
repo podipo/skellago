@@ -1,6 +1,6 @@
 # Skellago
 
-Skellago is a skeleton for web API back ends.  It is designed to work with front ends created by [Skella](https://github.com/podipo/skella/).
+[Skellago](https://github.com/podipo/skellago/) is a skeleton for web API back ends.  It is designed to work with front ends created by [Skella](https://github.com/podipo/skella/).
 
 # Technologies
 
@@ -8,10 +8,10 @@ Back end logic is written in [Go](http://golang.org/) using the [Negroni](http:/
 
 # Installation
 
-	git clone ...
+	git clone https://github.com/podipo/skellago.git
 	cd skellago
-	export DOCKER_HOST=tcp://:2375
-	vagrant up
+	vagrant up # If you are on OS X and need boot2docker 
+	export DOCKER_HOST=tcp://:2375 # Or wherever docker is running
 	go get -u github.com/codegangsta/negroni
 
 # Development
@@ -31,13 +31,13 @@ TBD
 
 - figure out third party go libs
 - integration with docker registries
-- create a skellago container for building and stop using Igneous's
-- DB container
-- file storage
-- backup and restoration
-- deployment to CI, AWS, aor GAE
+- create a skellago specific container for building
 - better cleanup after building a container
 - improve container starting and stopping
+- configure a DB container
+- configure a file storage container
+- backup and restoration
+- deployment to CI, AWS, aor GAE
 
 ## Go
 
