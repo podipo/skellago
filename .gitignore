@@ -1,6 +1,6 @@
 .vagrant
 deploy
-dist
+collect
 go/bin
 go/pkg
 

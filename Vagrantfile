@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 
 
-## In Skallago, Vagrant is used to spin up a docker host.
+## In Skellago, Vagrant is used to spin up a docker host.
 
 
 VAGRANTFILE_API_VERSION = "2"
