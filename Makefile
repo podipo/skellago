@@ -1,4 +1,4 @@
-.PHONY: clean compile_api collect_api image_api start_api stop_api
+.PHONY: clean compile_api collect_api image_api start_api stop_api go_get_dependencies
 
 # Generally, this compiles go using a build container and then builds docker images with the results 
 
@@ -22,10 +22,14 @@ DKR_BUILD := $(DKR_COMMAND) $(BUILD_TAG)
 # The prefix for running commands in the docker client container
 DKR_CLIENT  := $(DKR_COMMAND) $(DOCKER_CLIENT_TAG)
 
-all: image_api
+all: go_get_dependencies image_api
+
+go_get_dependencies:
+	go get github.com/codegangsta/negroni
 
 clean: stop_api
 	-rm -rf go/bin go/pkg deploy collect
+	-rm -rf go/src/github.com
 	-docker rmi -f $(API_TAG)
 
 compile_api: 

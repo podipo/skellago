@@ -3,4 +3,4 @@ deploy
 collect
 go/bin
 go/pkg
-
+go/src/github.com/
