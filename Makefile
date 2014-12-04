@@ -1,4 +1,4 @@
-.PHONY: clean compile_api collect_api image_api start_api stop_api go_get_dependencies
+.PHONY: clean compile_api collect_api image_api start_api stop_api go_get_dependencies image_postgres start_postgres stop_postgres stop_all
 
 # Generally, this compiles go using a build container and then builds docker images with the results 
 
@@ -9,6 +9,8 @@ DOCKER_CLIENT_TAG := igneoussystems/docker-client:1.3.1
 
 # Local container tags
 API_TAG := api:dev
+POSTGRES_TAG := postgres:dev
+POSTGRES_NAME := pg
 
 # The list of paths to build with Go
 API_PKGS := podipo.com/skellago/...
@@ -30,9 +32,10 @@ go_get_dependencies:
 	go get github.com/codegangsta/negroni
 	#go get github.com/goincremental/negroni-sessions
 	go get github.com/gorilla/mux
-	go get github.com/golang/glog
+	go get github.com/coocood/qbs
+	go get github.com/lib/pq
 
-clean: stop_api
+clean: stop_all
 	-rm -rf go/bin go/pkg deploy collect
 	-rm -rf go/src/github.com go/src/labix.org
 	-docker rmi -f $(API_TAG)
@@ -48,8 +51,20 @@ image_api: collect_api
 	$(DKR_CLIENT) docker build -q --rm -t $(API_TAG) /skellago/deploy/containers/api
 
 start_api: stop_api
-	docker run -d -p 9000:9000 $(API_TAG)
+	docker run -d -p 9000:9000 --link $(POSTGRES_NAME):postgres $(API_TAG)
 
 stop_api:
 	scripts/container_by_image.sh stop $(API_TAG)
 	scripts/container_by_image.sh rm $(API_TAG)
+
+image_postgres:
+	$(DKR_CLIENT) docker build -q --rm -t $(POSTGRES_TAG) /skellago/containers/postgres
+
+start_postgres:
+	docker run -d --name $(POSTGRES_NAME) $(POSTGRES_TAG)
+
+stop_postgres:
+	scripts/container_by_image.sh stop $(POSTGRES_TAG)
+	scripts/container_by_image.sh rm $(POSTGRES_TAG)
+
+stop_all: stop_api stop_postgres

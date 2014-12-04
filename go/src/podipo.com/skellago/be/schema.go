@@ -3,6 +3,8 @@ package be
 import (
 	"net/http"
 	"net/url"
+
+	"github.com/coocood/qbs"
 )
 
 type Schema struct {
@@ -48,7 +50,7 @@ func (resource SchemaResource) Properties() []Property {
 	return properties
 }
 
-func (tr SchemaResource) Get(url.Values, http.Header) (int, interface{}, http.Header) {
+func (tr SchemaResource) Get(vars map[string]string, vals url.Values, requestHeader http.Header, db *qbs.Qbs) (int, interface{}, http.Header) {
 	header := map[string][]string{}
 
 	endpoints := make([]Schema, len(tr.api.resources))

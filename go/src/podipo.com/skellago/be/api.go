@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/coocood/qbs"
 	"github.com/gorilla/mux"
 )
 
@@ -36,22 +37,22 @@ type Resource interface {
 	These *Supported interfaces are used by Resources to indicate whether a given HTTP method is supported
 */
 type GetSupported interface {
-	Get(url.Values, http.Header) (int, interface{}, http.Header)
+	Get(map[string]string, url.Values, http.Header, *qbs.Qbs) (int, interface{}, http.Header)
 }
 type PostSupported interface {
-	Post(url.Values, http.Header) (int, interface{}, http.Header)
+	Post(map[string]string, url.Values, http.Header, *qbs.Qbs) (int, interface{}, http.Header)
 }
 type PutSupported interface {
-	Put(url.Values, http.Header) (int, interface{}, http.Header)
+	Put(map[string]string, url.Values, http.Header, *qbs.Qbs) (int, interface{}, http.Header)
 }
 type DeleteSupported interface {
-	Delete(url.Values, http.Header) (int, interface{}, http.Header)
+	Delete(map[string]string, url.Values, http.Header, *qbs.Qbs) (int, interface{}, http.Header)
 }
 type HeadSupported interface {
-	Head(url.Values, http.Header) (int, interface{}, http.Header)
+	Head(map[string]string, url.Values, http.Header, *qbs.Qbs) (int, interface{}, http.Header)
 }
 type PatchSupported interface {
-	Patch(url.Values, http.Header) (int, interface{}, http.Header)
+	Patch(map[string]string, url.Values, http.Header, *qbs.Qbs) (int, interface{}, http.Header)
 }
 
 /*
@@ -69,8 +70,8 @@ func NewAPI(path string) *API {
 		Path:      path,
 		resources: make([]Resource, 0),
 	}
-	schemaResource := NewSchemaResource(api)
-	api.AddResource(schemaResource)
+	api.AddResource(NewSchemaResource(api))
+	api.AddResource(NewUserResource())
 	return api
 }
 
@@ -88,7 +89,7 @@ func (api *API) createHandlerFunc(resource Resource) http.HandlerFunc {
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		var methodHandler func(url.Values, http.Header) (int, interface{}, http.Header)
+		var methodHandler func(map[string]string, url.Values, http.Header, *qbs.Qbs) (int, interface{}, http.Header)
 		switch request.Method {
 		case GET:
 			if resource, ok := resource.(GetSupported); ok {
@@ -119,10 +120,21 @@ func (api *API) createHandlerFunc(resource Resource) http.HandlerFunc {
 			rw.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		code, data, header := methodHandler(request.Form, request.Header)
+
+		db, err := qbs.GetQbs()
+		if err != nil {
+			logger.Print(err)
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte(err.Error()))
+			return
+		}
+		defer db.Close()
+
+		code, data, header := methodHandler(mux.Vars(request), request.Form, request.Header, db)
 		content, err := json.MarshalIndent(data, "", " ")
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte(err.Error()))
 			return
 		}
 		rw.Header().Add("Skella-Version", VERSION)
