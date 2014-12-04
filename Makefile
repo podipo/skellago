@@ -1,4 +1,4 @@
-.PHONY: clean compile_api collect_api image_api start_api stop_api go_get_dependencies image_postgres start_postgres stop_postgres stop_all
+.PHONY: clean compile_api collect_api image_api start_api stop_api go_get_dependencies image_postgres start_postgres stop_postgres stop_all psql
 
 # Generally, this compiles go using a build container and then builds docker images with the results 
 
@@ -72,5 +72,8 @@ start_postgres:
 stop_postgres:
 	scripts/container_by_image.sh stop $(POSTGRES_TAG)
 	scripts/container_by_image.sh rm $(POSTGRES_TAG)
+
+psql:
+	scripts/db_shell.sh $(POSTGRES_USER) $(POSTGRES_PASSWORD)
 
 stop_all: stop_api stop_postgres
