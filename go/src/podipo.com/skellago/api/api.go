@@ -17,13 +17,12 @@ var logger = log.New(os.Stdout, "[api] ", 0)
 
 func registerDB() error {
 	// Register the QBS db
-	// TODO Get this from env vars
 	dsn := &qbs.DataSourceName{
-		DbName:   "skella",
+		DbName:   os.Getenv("POSTGRES_DB_NAME"),
+		Username: os.Getenv("POSTGRES_USER"),
+		Password: os.Getenv("POSTGRES_PASSWORD"),
 		Host:     os.Getenv("POSTGRES_PORT_5432_TCP_ADDR"),
 		Port:     os.Getenv("POSTGRES_PORT_5432_TCP_PORT"),
-		Username: "skella",
-		Password: "seekret",
 		Dialect:  qbs.NewPostgres(),
 	}
 	dsn.Append("sslmode", "disable")

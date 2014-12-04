@@ -2,6 +2,11 @@
 
 # Generally, this compiles go using a build container and then builds docker images with the results 
 
+# TODO: Load these from a config file which is .gitignore'd
+POSTGRES_DB_NAME := skella
+POSTGRES_USER := skella
+POSTGRES_PASSWORD := seekret
+
 # Remote container tags
 # TODO: publish skellago specific containers
 BUILD_TAG := igneoussystems/build:2
@@ -9,6 +14,7 @@ DOCKER_CLIENT_TAG := igneoussystems/docker-client:1.3.1
 
 # Local container tags
 API_TAG := api:dev
+API_NAME := api
 POSTGRES_TAG := postgres:dev
 POSTGRES_NAME := pg
 
@@ -51,17 +57,17 @@ image_api: collect_api
 	$(DKR_CLIENT) docker build -q --rm -t $(API_TAG) /skellago/deploy/containers/api
 
 start_api: stop_api
-	docker run -d -p 9000:9000 --link $(POSTGRES_NAME):postgres $(API_TAG)
+	docker run -d -e POSTGRES_USER=$(POSTGRES_USER) -e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) -e POSTGRES_DB_NAME=$(POSTGRES_DB_NAME) -p 9000:9000 --link $(POSTGRES_NAME):postgres --name $(API_NAME) $(API_TAG)
 
 stop_api:
 	scripts/container_by_image.sh stop $(API_TAG)
 	scripts/container_by_image.sh rm $(API_TAG)
 
 image_postgres:
-	$(DKR_CLIENT) docker build -q --rm -t $(POSTGRES_TAG) /skellago/containers/postgres
+	$(DKR_CLIENT) docker build --rm -t $(POSTGRES_TAG) /skellago/containers/postgres
 
 start_postgres:
-	docker run -d --name $(POSTGRES_NAME) $(POSTGRES_TAG)
+	docker run -d -e POSTGRES_USER=$(POSTGRES_USER) -e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) --name $(POSTGRES_NAME) $(POSTGRES_TAG)
 
 stop_postgres:
 	scripts/container_by_image.sh stop $(POSTGRES_TAG)
