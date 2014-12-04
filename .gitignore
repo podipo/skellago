@@ -4,3 +4,4 @@ collect
 go/bin
 go/pkg
 go/src/github.com/
+go/src/labix.org/

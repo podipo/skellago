@@ -29,11 +29,6 @@ TBD
 
 ## Ops
 
-- figure out third party go libs
-- integration with docker registries
-- create a skellago specific container for building
-- better cleanup after building a container
-- improve container starting and stopping
 - configure a DB container
 - configure a file storage container
 - backup and restoration
@@ -56,6 +51,10 @@ TBD
 
 ## Possible features
 
+- create a skellago specific container for building
+- better cleanup after building a container
+- improve container starting and stopping
+- integration with docker registries
 - Command line API tool
 - Websocket resource events
 

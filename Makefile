@@ -22,14 +22,19 @@ DKR_BUILD := $(DKR_COMMAND) $(BUILD_TAG)
 # The prefix for running commands in the docker client container
 DKR_CLIENT  := $(DKR_COMMAND) $(DOCKER_CLIENT_TAG)
 
+export GOPATH=go
+
 all: go_get_dependencies image_api
 
 go_get_dependencies:
 	go get github.com/codegangsta/negroni
+	#go get github.com/goincremental/negroni-sessions
+	go get github.com/gorilla/mux
+	go get github.com/golang/glog
 
 clean: stop_api
 	-rm -rf go/bin go/pkg deploy collect
-	-rm -rf go/src/github.com
+	-rm -rf go/src/github.com go/src/labix.org
 	-docker rmi -f $(API_TAG)
 
 compile_api: 
