@@ -2,11 +2,6 @@
 
 # Generally, this compiles go using a build container and then builds docker images with the results 
 
-# TODO: Load these from a config file which is .gitignore'd
-POSTGRES_DB_NAME := skella
-POSTGRES_USER := skella
-POSTGRES_PASSWORD := seekret
-
 # Remote container tags
 # TODO: publish skellago specific containers
 BUILD_TAG := igneoussystems/build:2
@@ -17,6 +12,18 @@ API_TAG := api:dev
 API_NAME := api
 POSTGRES_TAG := postgres:dev
 POSTGRES_NAME := pg
+TEST_NAME := test
+
+# TODO: Load these from a config file which is .gitignore'd
+POSTGRES_DB_NAME := skella
+POSTGRES_TEST_DB_NAME := test
+POSTGRES_USER := skella
+POSTGRES_PASSWORD := seekret
+
+POSTGRES_AUTH_ARGS := -e POSTGRES_USER=$(POSTGRES_USER) -e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) 
+POSTGRES_ARGS := $(POSTGRES_AUTH_ARGS) -e POSTGRES_DB_NAME=$(POSTGRES_DB_NAME)
+
+DOCKER_TEST_ARGS := $(POSTGRES_AUTH_ARGS) -e POSTGRES_DB_NAME=$(POSTGRES_TEST_DB_NAME) --link $(POSTGRES_NAME):postgres
 
 # The list of paths to build with Go
 API_PKGS := podipo.com/skellago/...
@@ -35,15 +42,16 @@ export GOPATH=go
 all: go_get_dependencies image_api
 
 go_get_dependencies:
+	go get github.com/chai2010/assert
 	go get github.com/codegangsta/negroni
-	#go get github.com/goincremental/negroni-sessions
 	go get github.com/gorilla/mux
 	go get github.com/coocood/qbs
 	go get github.com/lib/pq
+	go get code.google.com/p/go.crypto/bcrypt
 
 clean: stop_all
 	-rm -rf go/bin go/pkg deploy collect
-	-rm -rf go/src/github.com go/src/labix.org
+	-rm -rf go/src/github.com go/src/labix.org go/src/code.google.com
 	-docker rmi -f $(API_TAG)
 
 compile_api: 
@@ -57,17 +65,20 @@ image_api: collect_api
 	$(DKR_CLIENT) docker build -q --rm -t $(API_TAG) /skellago/deploy/containers/api
 
 start_api: stop_api
-	docker run -d -e POSTGRES_USER=$(POSTGRES_USER) -e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) -e POSTGRES_DB_NAME=$(POSTGRES_DB_NAME) -p 9000:9000 --link $(POSTGRES_NAME):postgres --name $(API_NAME) $(API_TAG)
+	docker run -d $(POSTGRES_ARGS) -p 9000:9000 --link $(POSTGRES_NAME):postgres --name $(API_NAME) $(API_TAG)
 
 stop_api:
 	scripts/container_by_image.sh stop $(API_TAG)
 	scripts/container_by_image.sh rm $(API_TAG)
 
+test:
+	@DOCKER_FLAGS="$(DOCKER_TEST_ARGS)" $(DKR_BUILD) go test -v $(API_PKGS)
+
 image_postgres:
 	$(DKR_CLIENT) docker build --rm -t $(POSTGRES_TAG) /skellago/containers/postgres
 
 start_postgres:
-	docker run -d -e POSTGRES_USER=$(POSTGRES_USER) -e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) --name $(POSTGRES_NAME) $(POSTGRES_TAG)
+	docker run -d $(POSTGRES_ARGS) --name $(POSTGRES_NAME) $(POSTGRES_TAG)
 
 stop_postgres:
 	scripts/container_by_image.sh stop $(POSTGRES_TAG)

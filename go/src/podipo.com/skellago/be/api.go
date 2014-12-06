@@ -23,7 +23,17 @@ const (
 )
 
 /*
-	An API resource which handles requests to a given URL endpoint
+	Data for a request to an API endpoint
+*/
+type APIRequest struct {
+	PathValues    map[string]string
+	URLValues     url.Values
+	RequestHeader http.Header
+	DB            *qbs.Qbs
+}
+
+/*
+	An API resource which handles APIRequests to a given URL endpoint
 */
 type Resource interface {
 	Name() string        // The name used by the mux
@@ -37,22 +47,22 @@ type Resource interface {
 	These *Supported interfaces are used by Resources to indicate whether a given HTTP method is supported
 */
 type GetSupported interface {
-	Get(map[string]string, url.Values, http.Header, *qbs.Qbs) (int, interface{}, http.Header)
+	Get(request *APIRequest) (int, interface{}, http.Header)
 }
 type PostSupported interface {
-	Post(map[string]string, url.Values, http.Header, *qbs.Qbs) (int, interface{}, http.Header)
+	Post(request *APIRequest) (int, interface{}, http.Header)
 }
 type PutSupported interface {
-	Put(map[string]string, url.Values, http.Header, *qbs.Qbs) (int, interface{}, http.Header)
+	Put(request *APIRequest) (int, interface{}, http.Header)
 }
 type DeleteSupported interface {
-	Delete(map[string]string, url.Values, http.Header, *qbs.Qbs) (int, interface{}, http.Header)
+	Delete(request *APIRequest) (int, interface{}, http.Header)
 }
 type HeadSupported interface {
-	Head(map[string]string, url.Values, http.Header, *qbs.Qbs) (int, interface{}, http.Header)
+	Head(request *APIRequest) (int, interface{}, http.Header)
 }
 type PatchSupported interface {
-	Patch(map[string]string, url.Values, http.Header, *qbs.Qbs) (int, interface{}, http.Header)
+	Patch(request *APIRequest) (int, interface{}, http.Header)
 }
 
 /*
@@ -89,7 +99,7 @@ func (api *API) createHandlerFunc(resource Resource) http.HandlerFunc {
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		var methodHandler func(map[string]string, url.Values, http.Header, *qbs.Qbs) (int, interface{}, http.Header)
+		var methodHandler func(*APIRequest) (int, interface{}, http.Header)
 		switch request.Method {
 		case GET:
 			if resource, ok := resource.(GetSupported); ok {
@@ -130,7 +140,13 @@ func (api *API) createHandlerFunc(resource Resource) http.HandlerFunc {
 		}
 		defer db.Close()
 
-		code, data, header := methodHandler(mux.Vars(request), request.Form, request.Header, db)
+		apiRequest := &APIRequest{
+			PathValues:    mux.Vars(request),
+			URLValues:     request.Form,
+			RequestHeader: request.Header,
+			DB:            db,
+		}
+		code, data, header := methodHandler(apiRequest)
 		content, err := json.MarshalIndent(data, "", " ")
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)

@@ -1,82 +1,44 @@
 package be
 
 import (
-	"net/http"
-	"net/url"
-	"strconv"
-
 	"github.com/coocood/qbs"
 )
 
 type User struct {
-	Id        int    `json:"id"`
+	Id        int64  `json:"id" qbs:"pk"`
 	Email     string `json:"email"`
 	FirstName string `json:"first-name"`
 	LastName  string `json:"last-name"`
+	Staff     bool   `json:"staff"`
 }
 
-var dummyUsers = []User{
-	User{
-		Id:        1,
-		Email:     "adrian@monk.example.com",
-		FirstName: "Adrian",
-		LastName:  "Monk",
-	},
-	User{
-		Id:        2,
-		Email:     "sharona@monk.example.com",
-		FirstName: "Sharona",
-		LastName:  "Fleming",
-	},
-}
-
-type UserResource struct {
-}
-
-func NewUserResource() *UserResource {
-	return &UserResource{}
-}
-
-func (UserResource) Name() string  { return "user" }
-func (UserResource) Path() string  { return "/user/{id:[0-9]+}" }
-func (UserResource) Title() string { return "The user account record" }
-func (UserResource) Description() string {
-	return "Each account is associated with a User."
-}
-
-func (resource UserResource) Properties() []Property {
-	properties := []Property{
-		Property{
-			Name:        "id",
-			Description: "id",
-			DataType:    "int",
-		},
-		Property{
-			Name:        "email",
-			Description: "email",
-			DataType:    "string",
-		},
-		Property{
-			Name:        "first-name",
-			Description: "first name",
-			DataType:    "string",
-			Optional:    true,
-		},
-		Property{
-			Name:        "last-name",
-			Description: "last name",
-			DataType:    "string",
-			Optional:    true,
-		},
+func CreateUser(email string, firstName string, lastName string, staff bool, db *qbs.Qbs) (*User, error) {
+	user := new(User)
+	user.Email = email
+	user.FirstName = firstName
+	user.LastName = lastName
+	user.Staff = staff
+	_, err := db.Save(user)
+	if err != nil {
+		return nil, err
 	}
-	return properties
+	return user, nil
 }
 
-func (resource UserResource) Get(vars map[string]string, values url.Values, requestHeader http.Header, db *qbs.Qbs) (int, interface{}, http.Header) {
-	responseHeader := map[string][]string{}
-	id, _ := strconv.Atoi(vars["id"])
-	if id < 1 || id > len(dummyUsers) {
-		return 404, "No such user: " + strconv.Itoa(id), responseHeader
+func UpdateUser(user *User, db *qbs.Qbs) error {
+	_, err := db.Save(user)
+	if err != nil {
+		return err
 	}
-	return 200, dummyUsers[id-1], responseHeader
+	return nil
+}
+
+func FindUser(id int64, db *qbs.Qbs) (*User, error) {
+	user := new(User)
+	user.Id = id
+	err := db.Find(user)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }

@@ -5,3 +5,5 @@ go/bin
 go/pkg
 go/src/github.com/
 go/src/labix.org/
+go/src/code.google.com/
+go/src/golang.org/

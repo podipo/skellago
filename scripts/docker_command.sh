@@ -28,4 +28,4 @@ MOUNTS="-v $PWD:$WORKING_DIR"
 TAG=$1
 shift
 
-docker run -i $terminal --rm $DKR_ENV $MOUNTS $TAG sh -c "$*"
+docker run -i $terminal --rm $DOCKER_FLAGS $DKR_ENV $MOUNTS $TAG sh -c "$*"

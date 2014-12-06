@@ -1,17 +1,80 @@
 package be
 
 import (
+	"database/sql"
+	"fmt"
+	"os"
+
 	"github.com/coocood/qbs"
+	_ "github.com/lib/pq" // Needed to make the postgres driver available
 )
 
-func MigrateDB() error {
-	logger.Print("Migrating DB Schema if necessary")
+var DBName = os.Getenv("POSTGRES_DB_NAME")
+var DBUser = os.Getenv("POSTGRES_USER")
+var DBPass = os.Getenv("POSTGRES_PASSWORD")
+var DBHost = os.Getenv("POSTGRES_PORT_5432_TCP_ADDR")
+var DBPort = os.Getenv("POSTGRES_PORT_5432_TCP_PORT")
+
+var DBURLFormat = "postgres://%s:%s@%s:%s/%s?sslmode=disable"
+
+func InitDB() error {
+	err := registerDB()
+	if err != nil {
+		return err
+	}
+	err = migrateDB()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func registerDB() error {
+	dsn := &qbs.DataSourceName{
+		DbName:   os.Getenv("POSTGRES_DB_NAME"),
+		Username: os.Getenv("POSTGRES_USER"),
+		Password: os.Getenv("POSTGRES_PASSWORD"),
+		Host:     os.Getenv("POSTGRES_PORT_5432_TCP_ADDR"),
+		Port:     os.Getenv("POSTGRES_PORT_5432_TCP_PORT"),
+		Dialect:  qbs.NewPostgres(),
+	}
+	dsn.Append("sslmode", "disable")
+	qbs.RegisterWithDataSourceName(dsn)
+	return nil
+}
+
+func migrateDB() error {
 	migration, err := qbs.GetMigration()
 	if err != nil {
 		return err
 	}
 	defer migration.Close()
 	migration.CreateTableIfNotExists(new(User))
-	logger.Print("Migrated DB Schema")
+	migration.CreateTableIfNotExists(new(Password))
+	return nil
+}
+
+func DropAndCreateTestDB() error {
+	db, err := sql.Open("postgres", fmt.Sprintf(DBURLFormat, DBUser, DBPass, DBHost, DBPort, DBUser))
+	if err != nil {
+		logger.Print("Open Error: " + err.Error())
+		return err
+	}
+	defer db.Close()
+
+	err = db.Ping()
+	if err != nil {
+		logger.Print("Ping Error: " + err.Error())
+		return err
+	}
+
+	db.Exec("drop database " + DBName + ";")
+	_, err = db.Exec("create database " + DBName + ";")
+	if err != nil {
+		logger.Print("Create Error: " + err.Error())
+		return err
+	}
+
+	InitDB()
 	return nil
 }
