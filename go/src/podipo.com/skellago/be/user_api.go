@@ -1,8 +1,96 @@
 package be
 
 import (
+	"encoding/json"
 	"net/http"
 )
+
+type LoginData struct {
+	Email    string "json:email"
+	Password string "json:password"
+}
+
+type CurrentUserResource struct {
+}
+
+func NewCurrentUserResource() *CurrentUserResource {
+	return &CurrentUserResource{}
+}
+
+func (CurrentUserResource) Name() string  { return "current-user" }
+func (CurrentUserResource) Path() string  { return "/user/current" }
+func (CurrentUserResource) Title() string { return "The logged in User" }
+func (CurrentUserResource) Description() string {
+	return "The User in the requesting session."
+}
+
+func (resource CurrentUserResource) Properties() []Property {
+	properties := []Property{
+		Property{
+			Name:        "uuid",
+			Description: "uuid",
+			DataType:    "string",
+		},
+		Property{
+			Name:        "email",
+			Description: "email",
+			DataType:    "string",
+		},
+		Property{
+			Name:        "first-name",
+			Description: "first name",
+			DataType:    "string",
+			Optional:    true,
+		},
+		Property{
+			Name:        "last-name",
+			Description: "last name",
+			DataType:    "string",
+			Optional:    true,
+		},
+	}
+	return properties
+}
+
+func (resource CurrentUserResource) Get(request *APIRequest) (int, interface{}, http.Header) {
+	responseHeader := map[string][]string{}
+	if request.User == nil {
+		return 404, "Not logged in", responseHeader
+	}
+	return 200, request.User, responseHeader
+}
+
+func (resource CurrentUserResource) Delete(request *APIRequest) (int, interface{}, http.Header) {
+	responseHeader := map[string][]string{}
+	if request.User == nil {
+		return 200, "Ok", responseHeader
+	}
+	request.Session.Delete(UserUUIDKey)
+	logger.Print("Logout: ", request.User.Email)
+	return 200, "Ok", responseHeader
+}
+
+func (resource CurrentUserResource) Post(request *APIRequest) (int, interface{}, http.Header) {
+	responseHeader := map[string][]string{}
+	var loginData LoginData
+	err := json.NewDecoder(request.Body).Decode(&loginData)
+	if err != nil {
+		return 400, "Error: " + err.Error(), responseHeader
+	}
+	if loginData.Email == "" || loginData.Password == "" {
+		return 400, "Incorrect login", responseHeader
+	}
+	user, err := FindUserByEmail(loginData.Email, request.DB)
+	if err != nil {
+		return 400, "No such user", responseHeader
+	}
+	if PasswordMatches(user.Id, loginData.Password, request.DB) == false {
+		return 400, "Incorrect password", responseHeader
+	}
+	request.Session.Set(UserUUIDKey, user.UUID)
+	logger.Print("Login: ", user.Email)
+	return 200, user, responseHeader
+}
 
 type UserResource struct {
 }

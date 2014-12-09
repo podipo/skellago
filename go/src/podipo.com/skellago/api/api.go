@@ -31,6 +31,14 @@ func main() {
 	store := sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
 	server.Use(sessions.Sessions("api_session", store))
 
+	frontEndDir := os.Getenv("FRONT_END_DIR")
+	if frontEndDir != "" {
+		logger.Print("Front end dir ", frontEndDir)
+		feStatic := negroni.NewStatic(http.Dir(frontEndDir))
+		feStatic.Prefix = ""
+		server.Use(feStatic)
+	}
+
 	staticDir := os.Getenv("STATIC_DIR")
 	if staticDir == "" {
 		staticDir = "static"
@@ -41,6 +49,7 @@ func main() {
 	server.Use(static)
 
 	api := be.NewAPI("/api")
+
 	server.UseHandler(api.Mux)
 
 	server.Run(":" + strconv.FormatInt(port, 10))

@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/bin/bash
 
 # This script runs a docker image which then calls scripts/container/install_demo.sh
 

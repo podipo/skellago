@@ -2,9 +2,6 @@ package main
 
 /*
 	Install demo data to show off the system
-
-	Yeah!
-
 */
 
 import (
@@ -31,19 +28,38 @@ func main() {
 	}
 	defer db.Close()
 
+	err = be.DeleteAllPasswords(db)
+	if err != nil {
+		logger.Fatal(err)
+		return
+	}
 	err = be.DeleteAllUsers(db)
-
-	alice, err := be.CreateUser("alice@example.com", "Alice", "Smith", true, db)
 	if err != nil {
-		logger.Fatal("Could not create user", err)
+		logger.Fatal(err)
 		return
 	}
-	logger.Print("Created", alice)
 
-	bob, err := be.CreateUser("bob@example.com", "Bob", "Garvey", false, db)
+	_, err = createUser("alice@example.com", "Alice", "Smith", true, "1234", db)
 	if err != nil {
-		logger.Fatal("Could not create user", err)
 		return
 	}
-	logger.Print("Created", bob)
+
+	_, err = createUser("bob@example.com", "Bob", "Garvey", false, "1234", db)
+	if err != nil {
+		return
+	}
+}
+
+func createUser(email string, firstName string, lastName string, staff bool, password string, db *qbs.Qbs) (*be.User, error) {
+	user, err := be.CreateUser(email, firstName, lastName, staff, db)
+	if err != nil {
+		logger.Fatal("Could not create user", err)
+		return nil, err
+	}
+	_, err = be.CreatePassword(password, user.Id, db)
+	if err != nil {
+		logger.Fatal("Could not create password", err)
+		return nil, err
+	}
+	return user, nil
 }

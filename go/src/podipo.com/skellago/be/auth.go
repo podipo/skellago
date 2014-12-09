@@ -7,7 +7,7 @@ import (
 
 type Password struct {
 	Id     int64 `qbs:"pk"`
-	UserId int64 `qbs:"fk:User"`
+	UserId int64 `qbs:"fk:User,unique"`
 	Hash   string
 }
 
@@ -62,4 +62,19 @@ func PasswordMatches(userId int64, plaintext string, db *qbs.Qbs) bool {
 		return false
 	}
 	return password.Matches(plaintext)
+}
+
+func DeleteAllPasswords(db *qbs.Qbs) error {
+	var passwords []*Password
+	err := db.FindAll(&passwords)
+	if err != nil {
+		return err
+	}
+	for _, password := range passwords {
+		_, err = db.Delete(password)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

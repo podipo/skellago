@@ -6,6 +6,7 @@ package be
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -23,6 +24,7 @@ const (
 	PATCH  = "PATCH"
 
 	AuthCookieName string = "SkellaAuth"
+	UserUUIDKey    string = "user-uuid"
 )
 
 /*
@@ -38,12 +40,13 @@ type APIList struct {
 	Data for a request to an API endpoint
 */
 type APIRequest struct {
-	PathValues    map[string]string
-	URLValues     url.Values
-	RequestHeader http.Header
-	DB            *qbs.Qbs
-	Session       sessions.Session
-	User          User
+	PathValues map[string]string
+	Values     url.Values
+	Header     http.Header
+	Body       io.ReadCloser
+	DB         *qbs.Qbs
+	Session    sessions.Session
+	User       *User
 }
 
 /*
@@ -95,6 +98,7 @@ func NewAPI(path string) *API {
 		resources: make([]Resource, 0),
 	}
 	api.AddResource(NewSchemaResource(api))
+	api.AddResource(NewCurrentUserResource())
 	api.AddResource(NewUsersResource())
 	api.AddResource(NewUserResource())
 	return api
@@ -155,17 +159,28 @@ func (api *API) createHandlerFunc(resource Resource) http.HandlerFunc {
 		defer db.Close()
 
 		session := sessions.GetSession(request)
-		if session != nil {
-
-		}
 
 		apiRequest := &APIRequest{
-			PathValues:    mux.Vars(request),
-			URLValues:     request.Form,
-			RequestHeader: request.Header,
-			DB:            db,
-			Session:       sessions.GetSession(request),
+			PathValues: mux.Vars(request),
+			Values:     request.Form,
+			Header:     request.Header,
+			Body:       request.Body,
+			DB:         db,
+			Session:    sessions.GetSession(request),
 		}
+
+		// Fetch the User from the session
+		if session != nil {
+			s_uuid := session.Get(UserUUIDKey)
+			if s_uuid != nil {
+				uuid, _ := s_uuid.(string)
+				user, err := FindUser(uuid, db)
+				if err == nil {
+					apiRequest.User = user
+				}
+			}
+		}
+
 		code, data, header := methodHandler(apiRequest)
 		content, err := json.MarshalIndent(data, "", " ")
 		if err != nil {
@@ -173,6 +188,7 @@ func (api *API) createHandlerFunc(resource Resource) http.HandlerFunc {
 			rw.Write([]byte(err.Error()))
 			return
 		}
+		rw.Header().Add("Content-Type", "application/json")
 		rw.Header().Add("Skella-Version", VERSION)
 		for name, values := range header {
 			for _, value := range values {

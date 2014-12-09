@@ -8,7 +8,7 @@ import (
 
 type User struct {
 	Id        int64     `json:"id" qbs:"pk"`
-	UUID      string    `json:"uuid" qbs:"unique"`
+	UUID      string    `json:"uuid" qbs:"unique,index"`
 	Email     string    `json:"email"`
 	FirstName string    `json:"first-name"`
 	LastName  string    `json:"last-name"`
@@ -46,8 +46,16 @@ func FindUsers(offset int, limit int, q *qbs.Qbs) ([]*User, error) {
 }
 
 func FindUser(uuid string, db *qbs.Qbs) (*User, error) {
+	return findUserByField("u_u_i_d", uuid, db)
+}
+
+func FindUserByEmail(email string, db *qbs.Qbs) (*User, error) {
+	return findUserByField("email", email, db)
+}
+
+func findUserByField(fieldName string, value string, db *qbs.Qbs) (*User, error) {
 	user := new(User)
-	err := db.WhereEqual("u_u_i_d", uuid).Find(user)
+	err := db.WhereEqual(fieldName, value).Find(user)
 	if err != nil {
 		return nil, err
 	}

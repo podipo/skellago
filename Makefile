@@ -15,6 +15,7 @@ POSTGRES_NAME := pg
 TEST_NAME := test
 
 # TODO: Load these from a config file which is .gitignore'd
+FRONT_END_DIR = $(PWD)/../skella/dist
 POSTGRES_DB_NAME := skella
 POSTGRES_TEST_DB_NAME := test
 POSTGRES_USER := skella
@@ -51,6 +52,7 @@ go_get_dependencies:
 	go get code.google.com/p/go.crypto/bcrypt
 	go get github.com/goincremental/negroni-sessions
 	go get github.com/nu7hatch/gouuid
+	go get github.com/rs/cors
 
 clean: stop_all
 	-rm -rf go/bin go/pkg deploy collect
@@ -68,11 +70,14 @@ image_api: collect_api
 	$(DKR_CLIENT) docker build -q --rm -t $(API_TAG) /skellago/deploy/containers/api
 
 start_api: stop_api
-	docker run -d $(POSTGRES_ARGS) -e SESSION_SECRET="$(SESSION_SECRET)" -p 9000:9000 --link $(POSTGRES_NAME):postgres --name $(API_NAME) $(API_TAG)
+	docker run -d $(POSTGRES_ARGS) -v "$(FRONT_END_DIR)":"/opt/root/front_end" -e FRONT_END_DIR=/opt/root/front_end -e SESSION_SECRET="$(SESSION_SECRET)" -p 9000:9000 --link $(POSTGRES_NAME):postgres --name $(API_NAME) $(API_TAG)
 
 stop_api:
 	scripts/container_by_image.sh stop $(API_TAG)
 	scripts/container_by_image.sh rm $(API_TAG)
+
+watch_api:
+	scripts/watch_api.sh
 
 install_demo:
 	scripts/install_demo.sh $(POSTGRES_ARGS) --link $(POSTGRES_NAME):postgres $(BUILD_TAG) 
