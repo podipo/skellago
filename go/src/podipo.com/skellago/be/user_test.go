@@ -16,21 +16,21 @@ func TestUserAPI(t *testing.T) {
 
 	user, err := CreateUser("adrian@monk.example.com", "Adrian", "Monk", false, db)
 	AssertNil(t, err)
-	AssertNotEqual(t, user.Id, 0)
+	AssertNotEqual(t, user.UUID, "")
 
-	_, err = FindUser(1000000, db)
+	_, err = FindUser("not-a-uuid", db)
 	AssertNotNil(t, err)
 
-	user2, err := FindUser(user.Id, db)
+	user2, err := FindUser(user.UUID, db)
 	AssertNil(t, err)
-	AssertEqual(t, user2.Id, user.Id)
+	AssertEqual(t, user2.UUID, user.UUID)
 	AssertEqual(t, user2.Email, user.Email)
 
 	user2.Email = "crosby@bing.example.com"
 	err = UpdateUser(user2, db)
 	AssertNil(t, err)
-	AssertEqual(t, user2.Id, user.Id)
-	user3, err := FindUser(user2.Id, db)
+	AssertEqual(t, user2.UUID, user.UUID)
+	user3, err := FindUser(user2.UUID, db)
 	AssertNil(t, err)
 	AssertEqual(t, user2.Email, user3.Email)
 }

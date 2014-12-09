@@ -51,6 +51,7 @@ TBD
 
 ## Possible features
 
+- [golint](https://github.com/golang/lint)'ing
 - create a skellago specific container for building
 - better cleanup after building a container
 - improve container starting and stopping

@@ -19,6 +19,7 @@ POSTGRES_DB_NAME := skella
 POSTGRES_TEST_DB_NAME := test
 POSTGRES_USER := skella
 POSTGRES_PASSWORD := seekret
+SESSION_SECRET := "fr0styth3sn0wm@n"
 
 POSTGRES_AUTH_ARGS := -e POSTGRES_USER=$(POSTGRES_USER) -e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) 
 POSTGRES_ARGS := $(POSTGRES_AUTH_ARGS) -e POSTGRES_DB_NAME=$(POSTGRES_DB_NAME)
@@ -48,10 +49,12 @@ go_get_dependencies:
 	go get github.com/coocood/qbs
 	go get github.com/lib/pq
 	go get code.google.com/p/go.crypto/bcrypt
+	go get github.com/goincremental/negroni-sessions
+	go get github.com/nu7hatch/gouuid
 
 clean: stop_all
 	-rm -rf go/bin go/pkg deploy collect
-	-rm -rf go/src/github.com go/src/labix.org go/src/code.google.com
+	-rm -rf go/src/github.com go/src/labix.org go/src/code.google.com go/src/golang.org
 	-docker rmi -f $(API_TAG)
 
 compile_api: 
@@ -65,11 +68,14 @@ image_api: collect_api
 	$(DKR_CLIENT) docker build -q --rm -t $(API_TAG) /skellago/deploy/containers/api
 
 start_api: stop_api
-	docker run -d $(POSTGRES_ARGS) -p 9000:9000 --link $(POSTGRES_NAME):postgres --name $(API_NAME) $(API_TAG)
+	docker run -d $(POSTGRES_ARGS) -e SESSION_SECRET="$(SESSION_SECRET)" -p 9000:9000 --link $(POSTGRES_NAME):postgres --name $(API_NAME) $(API_TAG)
 
 stop_api:
 	scripts/container_by_image.sh stop $(API_TAG)
 	scripts/container_by_image.sh rm $(API_TAG)
+
+install_demo:
+	scripts/install_demo.sh $(POSTGRES_ARGS) --link $(POSTGRES_NAME):postgres $(BUILD_TAG) 
 
 test:
 	@DOCKER_FLAGS="$(DOCKER_TEST_ARGS)" $(DKR_BUILD) go test -v $(API_PKGS)

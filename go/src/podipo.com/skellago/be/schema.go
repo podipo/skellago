@@ -15,7 +15,7 @@ type Schema struct {
 type Property struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	DataType    string `json:"data-type"` // string, int, float, array, object
+	DataType    string `json:"data-type"` // string, int, float, array, object, bool
 	Optional    bool   `json:"optional"`
 }
 
@@ -31,7 +31,7 @@ func NewSchemaResource(api *API) *SchemaResource {
 
 func (SchemaResource) Name() string  { return "schema" }
 func (SchemaResource) Path() string  { return "/schema" }
-func (SchemaResource) Title() string { return "The JSON Schema for this API" }
+func (SchemaResource) Title() string { return "The schema for this web API" }
 func (SchemaResource) Description() string {
 	return "Use this JSON schema to implement your front end API wrapper."
 }

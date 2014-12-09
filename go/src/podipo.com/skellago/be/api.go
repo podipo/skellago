@@ -10,6 +10,7 @@ import (
 	"net/url"
 
 	"github.com/coocood/qbs"
+	"github.com/goincremental/negroni-sessions"
 	"github.com/gorilla/mux"
 )
 
@@ -20,7 +21,18 @@ const (
 	DELETE = "DELETE"
 	HEAD   = "HEAD"
 	PATCH  = "PATCH"
+
+	AuthCookieName string = "SkellaAuth"
 )
+
+/*
+	A data structure used when returning a list from an API resource
+*/
+type APIList struct {
+	Offset  int         `json:"offset"`
+	Limit   int         `json:"limit"`
+	Objects interface{} `json:"objects"`
+}
 
 /*
 	Data for a request to an API endpoint
@@ -30,6 +42,8 @@ type APIRequest struct {
 	URLValues     url.Values
 	RequestHeader http.Header
 	DB            *qbs.Qbs
+	Session       sessions.Session
+	User          User
 }
 
 /*
@@ -81,6 +95,7 @@ func NewAPI(path string) *API {
 		resources: make([]Resource, 0),
 	}
 	api.AddResource(NewSchemaResource(api))
+	api.AddResource(NewUsersResource())
 	api.AddResource(NewUserResource())
 	return api
 }
@@ -133,18 +148,23 @@ func (api *API) createHandlerFunc(resource Resource) http.HandlerFunc {
 
 		db, err := qbs.GetQbs()
 		if err != nil {
-			logger.Print(err)
 			rw.WriteHeader(http.StatusInternalServerError)
 			rw.Write([]byte(err.Error()))
 			return
 		}
 		defer db.Close()
 
+		session := sessions.GetSession(request)
+		if session != nil {
+
+		}
+
 		apiRequest := &APIRequest{
 			PathValues:    mux.Vars(request),
 			URLValues:     request.Form,
 			RequestHeader: request.Header,
 			DB:            db,
+			Session:       sessions.GetSession(request),
 		}
 		code, data, header := methodHandler(apiRequest)
 		content, err := json.MarshalIndent(data, "", " ")

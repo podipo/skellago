@@ -31,11 +31,11 @@ func InitDB() error {
 
 func registerDB() error {
 	dsn := &qbs.DataSourceName{
-		DbName:   os.Getenv("POSTGRES_DB_NAME"),
-		Username: os.Getenv("POSTGRES_USER"),
-		Password: os.Getenv("POSTGRES_PASSWORD"),
-		Host:     os.Getenv("POSTGRES_PORT_5432_TCP_ADDR"),
-		Port:     os.Getenv("POSTGRES_PORT_5432_TCP_PORT"),
+		DbName:   DBName,
+		Username: DBUser,
+		Password: DBPass,
+		Host:     DBHost,
+		Port:     DBPort,
 		Dialect:  qbs.NewPostgres(),
 	}
 	dsn.Append("sslmode", "disable")

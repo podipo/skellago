@@ -1,19 +1,25 @@
 package be
 
 import (
+	"time"
+
 	"github.com/coocood/qbs"
 )
 
 type User struct {
-	Id        int64  `json:"id" qbs:"pk"`
-	Email     string `json:"email"`
-	FirstName string `json:"first-name"`
-	LastName  string `json:"last-name"`
-	Staff     bool   `json:"staff"`
+	Id        int64     `json:"id" qbs:"pk"`
+	UUID      string    `json:"uuid" qbs:"unique"`
+	Email     string    `json:"email"`
+	FirstName string    `json:"first-name"`
+	LastName  string    `json:"last-name"`
+	Staff     bool      `json:"staff"`
+	Created   time.Time `json:"created"`
+	Updated   time.Time `json:"updated"`
 }
 
 func CreateUser(email string, firstName string, lastName string, staff bool, db *qbs.Qbs) (*User, error) {
 	user := new(User)
+	user.UUID = UUID()
 	user.Email = email
 	user.FirstName = firstName
 	user.LastName = lastName
@@ -33,12 +39,32 @@ func UpdateUser(user *User, db *qbs.Qbs) error {
 	return nil
 }
 
-func FindUser(id int64, db *qbs.Qbs) (*User, error) {
+func FindUsers(offset int, limit int, q *qbs.Qbs) ([]*User, error) {
+	var users []*User
+	err := q.Limit(limit).Offset(offset).FindAll(&users)
+	return users, err
+}
+
+func FindUser(uuid string, db *qbs.Qbs) (*User, error) {
 	user := new(User)
-	user.Id = id
-	err := db.Find(user)
+	err := db.WhereEqual("u_u_i_d", uuid).Find(user)
 	if err != nil {
 		return nil, err
 	}
 	return user, nil
+}
+
+func DeleteAllUsers(db *qbs.Qbs) error {
+	var users []*User
+	err := db.FindAll(&users)
+	if err != nil {
+		return err
+	}
+	for _, user := range users {
+		_, err = db.Delete(user)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/codegangsta/negroni"
+	"github.com/goincremental/negroni-sessions"
 	"podipo.com/skellago/be"
 )
 
@@ -27,6 +28,9 @@ func main() {
 
 	server := negroni.New()
 
+	store := sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
+	server.Use(sessions.Sessions("api_session", store))
+
 	staticDir := os.Getenv("STATIC_DIR")
 	if staticDir == "" {
 		staticDir = "static"
@@ -38,9 +42,6 @@ func main() {
 
 	api := be.NewAPI("/api")
 	server.UseHandler(api.Mux)
-
-	//store := sessions.NewCookieStore([]byte("1234abcd"))
-	//server.Use(sessions.Sessions("shoe_session", store))
 
 	server.Run(":" + strconv.FormatInt(port, 10))
 }

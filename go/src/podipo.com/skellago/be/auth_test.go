@@ -35,3 +35,13 @@ func TestPassword(t *testing.T) {
 	err = UpdatePassword(password2, db)
 	AssertNil(t, err)
 }
+
+func TestUUID(t *testing.T) {
+	// Test the stuff
+	uuid1 := UUID()
+	logger.Print("UUID", uuid1)
+	uuid1 = UUID()
+	logger.Print("UUID", uuid1)
+	uuid1 = UUID()
+	logger.Print("UUID", uuid1)
+}
