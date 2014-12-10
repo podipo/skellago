@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"github.com/coocood/qbs"
 	"github.com/goincremental/negroni-sessions"
@@ -23,9 +24,32 @@ const (
 	HEAD   = "HEAD"
 	PATCH  = "PATCH"
 
+	// Session constants
 	AuthCookieName string = "SkellaAuth"
 	UserUUIDKey    string = "user-uuid"
+
+	// List URL parameters
+	OffsetKey string = "offset"
+	LimitKey  string = "limit"
 )
+
+var APIListProperties = []Property{
+	Property{
+		Name:        "offset",
+		Description: "The index into the result set for the first item in this list",
+		DataType:    "int",
+	},
+	Property{
+		Name:        "limit",
+		Description: "The maximum number of results returned",
+		DataType:    "int",
+	},
+	Property{
+		Name:        "objects",
+		Description: "The array of objects in this list",
+		DataType:    "array",
+	},
+}
 
 /*
 	A data structure used when returning a list from an API resource
@@ -34,6 +58,26 @@ type APIList struct {
 	Offset  int         `json:"offset"`
 	Limit   int         `json:"limit"`
 	Objects interface{} `json:"objects"`
+}
+
+/*
+	By default, return 0, 100
+	If limit and offset are set in the values, return those
+*/
+func GetOffsetAndLimit(values url.Values) (offset int, limit int) {
+	offsetVal, err := strconv.Atoi(values.Get(OffsetKey))
+	if err == nil {
+		offset = offsetVal
+	} else {
+		offset = 0
+	}
+	limitVal, err := strconv.Atoi(values.Get(LimitKey))
+	if err == nil {
+		limit = limitVal
+	} else {
+		limit = 100
+	}
+	return
 }
 
 /*

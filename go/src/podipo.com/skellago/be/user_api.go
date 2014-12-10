@@ -5,6 +5,37 @@ import (
 	"net/http"
 )
 
+var UserProperties = []Property{
+	Property{
+		Name:        "uuid",
+		Description: "uuid",
+		DataType:    "string",
+	},
+	Property{
+		Name:        "email",
+		Description: "email",
+		DataType:    "string",
+	},
+	Property{
+		Name:        "first-name",
+		Description: "first name",
+		DataType:    "string",
+		Optional:    true,
+	},
+	Property{
+		Name:        "last-name",
+		Description: "last name",
+		DataType:    "string",
+		Optional:    true,
+	},
+	Property{
+		Name:        "created",
+		Description: "Created timestamp",
+		DataType:    "date-time",
+		Optional:    true,
+	},
+}
+
 type LoginData struct {
 	Email    string "json:email"
 	Password string "json:password"
@@ -25,31 +56,7 @@ func (CurrentUserResource) Description() string {
 }
 
 func (resource CurrentUserResource) Properties() []Property {
-	properties := []Property{
-		Property{
-			Name:        "uuid",
-			Description: "uuid",
-			DataType:    "string",
-		},
-		Property{
-			Name:        "email",
-			Description: "email",
-			DataType:    "string",
-		},
-		Property{
-			Name:        "first-name",
-			Description: "first name",
-			DataType:    "string",
-			Optional:    true,
-		},
-		Property{
-			Name:        "last-name",
-			Description: "last name",
-			DataType:    "string",
-			Optional:    true,
-		},
-	}
-	return properties
+	return UserProperties
 }
 
 func (resource CurrentUserResource) Get(request *APIRequest) (int, interface{}, http.Header) {
@@ -107,35 +114,15 @@ func (UserResource) Description() string {
 }
 
 func (resource UserResource) Properties() []Property {
-	properties := []Property{
-		Property{
-			Name:        "uuid",
-			Description: "uuid",
-			DataType:    "string",
-		},
-		Property{
-			Name:        "email",
-			Description: "email",
-			DataType:    "string",
-		},
-		Property{
-			Name:        "first-name",
-			Description: "first name",
-			DataType:    "string",
-			Optional:    true,
-		},
-		Property{
-			Name:        "last-name",
-			Description: "last name",
-			DataType:    "string",
-			Optional:    true,
-		},
-	}
-	return properties
+	return UserProperties
 }
 
 func (resource UserResource) Get(request *APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
+	if request.User == nil || request.User.Staff != true {
+		return 403, "This api is for staff", responseHeader
+	}
+
 	uuid, _ := request.PathValues["uuid"]
 	user, err := FindUser(uuid, request.DB)
 	if err != nil {
@@ -159,23 +146,16 @@ func (UsersResource) Description() string {
 }
 
 func (resource UsersResource) Properties() []Property {
-	properties := []Property{
-		Property{
-			Name:        "resources",
-			Description: "the list",
-			DataType:    "list",
-		},
-		// TODO: Add pagination information
-	}
-	return properties
+	return APIListProperties
 }
 
 func (resource UsersResource) Get(request *APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
-	// TODO limit and offset from vars
-	offset := 0
-	limit := 100
+	if request.User == nil || request.User.Staff != true {
+		return 403, "This api is for staff", responseHeader
+	}
 
+	offset, limit := GetOffsetAndLimit(request.Values)
 	users, err := FindUsers(offset, limit, request.DB)
 	if err != nil {
 		return 500, "Could not list users", responseHeader
