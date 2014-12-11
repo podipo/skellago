@@ -8,52 +8,57 @@ Back end logic is written in [Go](http://golang.org/) using the [Negroni](http:/
 
 # Installation
 
+First, install the docker client.
+
 	git clone https://github.com/podipo/skellago.git
 	cd skellago
 	vagrant up # If you are on OS X and need boot2docker 
 	export DOCKER_HOST=tcp://:2375 # Or wherever docker is running
-	go get -u github.com/codegangsta/negroni
+	make go_get_dependencies
+	make
 
 # Development
 
-	make
+	make image_postgres start_postgres
 	make start_api
 
-	make stop_api
+	make stop_api stop_postgres
+
+	make cycle_api
+	make psql
+	make watch_api
 
 # Testing
 
-TBD
+	make test
 
 # To-do
 
 ## Ops
 
-- configure a DB container
-- configure a file storage container
-- backup and restoration
 - deployment to CI, AWS, aor GAE
+- backup and restoration
 
 ## Go
 
-- search again for existing API toolkits, considering [design foundations](https://github.com/interagent/http-api-design/blob/master/README.md).
-- start the common API+User code in its own package with an eye toward a separate repo
+- consider [design foundations](https://github.com/interagent/http-api-design/blob/master/README.md)
 
-## V1 Features
+## Features
 
-- API resource lib
+- API resource library
 - Persistence layer
-- Glue for resources based on persistence records
 - User records and authentication
 - API description resource
 - Backbone.js wrapper
+- Service of Skella front end
+
+## Possible future features
+
+- Binary file (esp image) handling
 - Example project
-
-## Possible features
-
 - [golint](https://github.com/golang/lint)'ing
-- create a skellago specific container for building
 - better cleanup after building a container
+- option to include skella dist files in api container
 - improve container starting and stopping
 - integration with docker registries
 - Command line API tool

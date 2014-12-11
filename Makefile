@@ -1,11 +1,9 @@
-.PHONY: clean compile_api collect_api image_api start_api stop_api go_get_dependencies image_postgres start_postgres stop_postgres stop_all psql
+.PHONY: clean cycle_api compile_api collect_api image_api start_api stop_api go_get_deps image_postgres start_postgres stop_postgres stop_all psql
 
 # Generally, this compiles go using a build container and then builds docker images with the results 
 
-# Remote container tags
-# TODO: publish skellago specific containers
-BUILD_TAG := igneoussystems/build:2
-DOCKER_CLIENT_TAG := igneoussystems/docker-client:1.3.1
+# The remote container which will build the code
+BUILD_TAG := podipo/gobuild
 
 # Local container tags
 API_TAG := api:dev
@@ -36,38 +34,29 @@ DKR_COMMAND := scripts/docker_command.sh
 # The prefix for running commands in the build container
 DKR_BUILD := $(DKR_COMMAND) $(BUILD_TAG)
 
-# The prefix for running commands in the docker client container
-DKR_CLIENT  := $(DKR_COMMAND) $(DOCKER_CLIENT_TAG)
-
-export GOPATH=go
-
-all: go_get_dependencies image_api
-
-go_get_dependencies:
-	go get github.com/chai2010/assert
-	go get github.com/codegangsta/negroni
-	go get github.com/gorilla/mux
-	go get github.com/coocood/qbs
-	go get github.com/lib/pq
-	go get code.google.com/p/go.crypto/bcrypt
-	go get github.com/goincremental/negroni-sessions
-	go get github.com/nu7hatch/gouuid
-	go get github.com/rs/cors
+all: go_get_deps image_api
 
 clean: stop_all
 	-rm -rf go/bin go/pkg deploy collect
+	$(DKR_BUILD) docker rmi -f $(API_TAG)
+
+go_get_deps:
+	$(DKR_BUILD) /skellago/scripts/container/go_get_deps.sh
+
+clean_deps:
 	-rm -rf go/src/github.com go/src/labix.org go/src/code.google.com go/src/golang.org
-	-docker rmi -f $(API_TAG)
+
+cycle_api: stop_api image_api start_api watch_api
 
 compile_api: 
 	$(DKR_BUILD) go install -v $(API_PKGS)
 
 collect_api: compile_api
-	$(DKR_CLIENT) /skellago/scripts/container/create_artifact.sh api
+	$(DKR_BUILD) /skellago/scripts/container/create_artifact.sh api
 
 image_api: collect_api
-	$(DKR_CLIENT) /skellago/scripts/container/prepare_image.sh /skellago/containers/api /skellago/collect/api-artifact.tar.gz /skellago/deploy/containers/api
-	$(DKR_CLIENT) docker build -q --rm -t $(API_TAG) /skellago/deploy/containers/api
+	$(DKR_BUILD) /skellago/scripts/container/prepare_image.sh /skellago/containers/api /skellago/collect/api-artifact.tar.gz /skellago/deploy/containers/api
+	$(DKR_BUILD) docker build -q --rm -t $(API_TAG) /skellago/deploy/containers/api
 
 start_api: stop_api
 	docker run -d $(POSTGRES_ARGS) -v "$(FRONT_END_DIR)":"/opt/root/front_end" -e FRONT_END_DIR=/opt/root/front_end -e SESSION_SECRET="$(SESSION_SECRET)" -p 9000:9000 --link $(POSTGRES_NAME):postgres --name $(API_NAME) $(API_TAG)
@@ -86,7 +75,7 @@ test:
 	@DOCKER_FLAGS="$(DOCKER_TEST_ARGS)" $(DKR_BUILD) go test -v $(API_PKGS)
 
 image_postgres:
-	$(DKR_CLIENT) docker build --rm -t $(POSTGRES_TAG) /skellago/containers/postgres
+	$(DKR_BUILD) docker build --rm -t $(POSTGRES_TAG) /skellago/containers/postgres
 
 start_postgres:
 	docker run -d $(POSTGRES_ARGS) --name $(POSTGRES_NAME) $(POSTGRES_TAG)
@@ -99,3 +88,6 @@ psql:
 	scripts/db_shell.sh $(POSTGRES_USER) $(POSTGRES_PASSWORD)
 
 stop_all: stop_api stop_postgres
+
+image_gobuild:
+	docker build -q --rm -t $(BUILD_TAG) containers/gobuild
