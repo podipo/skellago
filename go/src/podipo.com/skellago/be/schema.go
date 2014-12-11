@@ -13,10 +13,11 @@ type Schema struct {
 }
 
 type Property struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	DataType    string `json:"data-type"` // string, int, float, array, object, bool
-	Optional    bool   `json:"optional"`
+	Name         string `json:"name"`
+	Description  string `json:"description"`
+	DataType     string `json:"data-type"` // string, int, float, array, object, bool
+	Optional     bool   `json:"optional"`
+	ChildrenType string `json:"children-type,omitempty"` // If this endpoint is a collection, this is the type
 }
 
 type SchemaResource struct {
@@ -52,7 +53,7 @@ func (tr SchemaResource) Get(request *APIRequest) (int, interface{}, http.Header
 
 	endpoints := make([]Schema, len(tr.api.resources))
 	for i, resource := range tr.api.resources {
-		endpoints[i] = schemaFromResource(resource)
+		endpoints[i] = schemaFromResource(resource, tr.api.Path)
 	}
 
 	data := make(map[string]interface{})
@@ -63,10 +64,10 @@ func (tr SchemaResource) Get(request *APIRequest) (int, interface{}, http.Header
 	return 200, data, header
 }
 
-func schemaFromResource(resource Resource) Schema {
+func schemaFromResource(resource Resource, apiPath string) Schema {
 	schema := Schema{
 		Name:        resource.Name(),
-		Path:        resource.Path(),
+		Path:        apiPath + resource.Path(),
 		Title:       resource.Title(),
 		Description: resource.Description(),
 		Properties:  resource.Properties(),

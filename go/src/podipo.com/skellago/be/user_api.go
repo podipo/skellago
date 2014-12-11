@@ -1,6 +1,8 @@
 package be
 
 import (
+	"fmt"
+
 	"encoding/json"
 	"net/http"
 )
@@ -34,6 +36,23 @@ var UserProperties = []Property{
 		DataType:    "date-time",
 		Optional:    true,
 	},
+	Property{
+		Name:        "modified",
+		Description: "Modified timestamp",
+		DataType:    "date-time",
+		Optional:    true,
+	},
+}
+
+var UsersProperties = make([]Property, len(APIListProperties))
+
+func init() {
+	for index, property := range APIListProperties {
+		UsersProperties[index] = property
+		if UsersProperties[index].Name == "objects" {
+			UsersProperties[index].ChildrenType = "user"
+		}
+	}
 }
 
 type LoginData struct {
@@ -107,7 +126,7 @@ func NewUserResource() *UserResource {
 }
 
 func (UserResource) Name() string  { return "user" }
-func (UserResource) Path() string  { return "/user/{uuid:UUID[0-9,a-z,-]+}" }
+func (UserResource) Path() string  { return "/user/{uuid:[0-9,a-z,-]+}" }
 func (UserResource) Title() string { return "The user account record" }
 func (UserResource) Description() string {
 	return "Each account is associated with a User."
@@ -131,6 +150,37 @@ func (resource UserResource) Get(request *APIRequest) (int, interface{}, http.He
 	return 200, user, responseHeader
 }
 
+func (resource UserResource) Put(request *APIRequest) (int, interface{}, http.Header) {
+	responseHeader := map[string][]string{}
+	if request.User == nil || request.User.Staff != true {
+		return 403, "This api is for staff", responseHeader
+	}
+
+	uuid, _ := request.PathValues["uuid"]
+	user, err := FindUser(uuid, request.DB)
+	if err != nil {
+		return 404, "No such user: " + uuid, responseHeader
+	}
+
+	var updatedUser User
+	err = json.NewDecoder(request.Body).Decode(&updatedUser)
+	if err != nil {
+		return 400, "Bad request", responseHeader
+	}
+	err = UpdateUser(&updatedUser, request.DB)
+	if err != nil {
+		return 400, fmt.Sprint("Bad request ", user), responseHeader
+	}
+	if user.UUID != updatedUser.UUID {
+		return 400, fmt.Sprint("Bad request UUIDs ", user.UUID, updatedUser.UUID), responseHeader
+	}
+	if user.Id != updatedUser.Id {
+		return 400, fmt.Sprint("Bad request IDs ", user.Id, updatedUser.Id), responseHeader
+	}
+
+	return 200, user, responseHeader
+}
+
 type UsersResource struct {
 }
 
@@ -146,7 +196,7 @@ func (UsersResource) Description() string {
 }
 
 func (resource UsersResource) Properties() []Property {
-	return APIListProperties
+	return UsersProperties
 }
 
 func (resource UsersResource) Get(request *APIRequest) (int, interface{}, http.Header) {
