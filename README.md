@@ -1,36 +1,100 @@
-# Skellago
+# Skella Back End
 
-[Skellago](https://github.com/podipo/skellago/) is a skeleton for web API back ends.  It is designed to work with front ends created by [Skella](https://github.com/podipo/skella/).
+The [Skella back end](https://github.com/podipo/skellago/) is a skeleton for web API back ends.  It is designed to work with projects based on the [Skella front end](https://github.com/podipo/skella/).
 
 # Technologies
 
-Back end logic is written in [Go](http://golang.org/) using the [Negroni](http://negroni.codegangsta.io/) framework and is hosted in [Docker](https://www.docker.com) containers.  Skellago also provides a JSON description of the API as well as a [Backbone.js](http://backbonejs.org/) wrapper.
+After all is said and done, the Skella back end creates a [Docker](https://www.docker.com) container running a web API which is backed by another container running PostgreSQL.  The web API is written in [Go](http://golang.org/) using the [Negroni](http://negroni.codegangsta.io/) framework.  The API provides a JSON description of itself which is used to automatically create a [Backbone.js](http://backbonejs.org/) wrapper.  It is through Backbone Models and Collections that the Skella front end connects to the Skella back end.
+
+# Features
+
+- API resource library
+- Persistence layer using QBS and PostgreSQL
+- User records and authentication
+- API description resource
+- Backbone.js wrapper
+- Integration with the Skella front end
 
 # Installation
 
-First, install the docker client.
+Your development environment will need to be running a linux or OS X.  If you're on Windows, fire up a VM with linux.
+
+You will need a working docker container and the docker client.  Follow the instructions in the [Docker installation guide](https://docs.docker.com/installation/#installation) for your operating system.
+
+If you don't already have git, follow the [git download instructions](http://www.git-scm.com/downloads).
+
+If you don't already have `make`, you'll need to install it.  On OS X, that usually means installing X Code.
+
+Now open up a terminal to check out the code:
 
 	git clone https://github.com/podipo/skellago.git
 	cd skellago
-	vagrant up # If you are on OS X and need boot2docker 
+
+Run this if you're on OS X and need to run boot2docker:
+
+	vagrant up
+
+On linux, make sure that the docker daemon is running.
+
+No matter your OS, you'll need to export a variable naming your docker host:
+
 	export DOCKER_HOST=tcp://:2375 # Or wherever docker is running
+
+Now run this to set up your go third party libraries and then build your project:
+
 	make go_get_dependencies
 	make
 
+The first time you kick off a build process, docker will go fetch the container which holds the go build tools.  So, the first time will be slow.
+
+To test that everything is built and ready, run the following:
+
+	make start_postgres # fire up the database container
+	make start_api      # fire up the API container
+	make install_demo   # load up the DB with some example users
+
+Now point your browser at [127.0.0.1:9000/api/schema](http://127.0.0.1:9000/api/schema) and you should see JSON describing the API endpoints.
+
 # Development
 
-	make image_postgres start_postgres
-	make start_api
+If this is your first time using the Skella back end and you just want to see it in action, the easiest thing to do is to set up the Skella front end in a directory next to the skellago directory.  Go follow the instructions on the [Skella front end readme](https://github.com/podipo/skella/) to build skella.  The Skella back end assumes that the `skella` and `skellago` directories are next to each other and it serves `skella/dist/index.html` when you hit [127.0.0.1:9000](http://127.0.0.1:9000/).
 
-	make stop_api stop_postgres
+So, assuming that the Skella front end is now being served by the back end and that you ran the `install_demo` target listed above, you should be able to authenticate with the back end from [127.0.0.1:9000/login/](http://127.0.0.1:9000/login/) using the email `alice@example.com` and the password `1234`.
+
+To connect directly to the database with psql:
+
+	make psql
+
+To watch the logging on the API service's stdout:
+
+	make watch_api
+
+# Adding API resources
+
+TBD
+
+To build your go code, package up a new image, start a new container, and then watch the logs:	
 
 	make cycle_api
-	make psql
-	make watch_api
 
 # Testing
 
+TBD
+
+To run the tests:
+
 	make test
+
+# Cleaning up
+
+To stop the containers:
+
+	make stop_api
+	make stop_postgres
+	# or to stop both
+	make stop_all
+
+	make clean # stops containers, removes the api image, then deletes the compiled binaries
 
 # To-do
 
@@ -41,16 +105,7 @@ First, install the docker client.
 
 ## Go
 
-- consider [design foundations](https://github.com/interagent/http-api-design/blob/master/README.md)
-
-## Features
-
-- API resource library
-- Persistence layer
-- User records and authentication
-- API description resource
-- Backbone.js wrapper
-- Service of Skella front end
+- consider [API design foundations](https://github.com/interagent/http-api-design/blob/master/README.md)
 
 ## Possible future features
 
