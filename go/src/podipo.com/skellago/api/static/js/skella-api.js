@@ -4,6 +4,8 @@ skella.schema = skella.schema || {};
 
 skella.schema.pathVariablesRegex = new RegExp('{[^{]+}', 'g');
 
+skella.schema.acceptFormat = "application/vnd.api+json; version="
+
 skella.schema.generateURL = function(path, attributes){
 		var tokens = path.match(skella.schema.pathVariablesRegex);
 		if(tokens == null || tokens.length == 0) {
@@ -24,6 +26,17 @@ skella.schema.generateURL = function(path, attributes){
 		return result;	
 }
 
+// Add the API version to the XHR headers when syncing models or collections
+skella.schema.versionedSync = function(method, model, options){
+	var beforeSend = options.beforeSend;
+	var version = this.version;
+	options.beforeSend = function(xhr) {
+		xhr.setRequestHeader('Accept', skella.schema.acceptFormat + version);
+		if (beforeSend) return beforeSend.apply(this, arguments);
+	};
+	Backbone.Model.prototype.sync.apply(this, arguments);
+}
+
 skella.schema.Collection = Backbone.Collection.extend({
 	initialize: function(options){
 		this.options = options;
@@ -35,7 +48,8 @@ skella.schema.Collection = Backbone.Collection.extend({
 	},
 	url: function(){
 		return skella.schema.generateURL(this.schema.path, this.options);
-	}	
+	},
+	sync: skella.schema.versionedSync
 });
 
 skella.schema.Model = Backbone.Model.extend({
@@ -44,7 +58,8 @@ skella.schema.Model = Backbone.Model.extend({
 	},
 	url: function(){
 		return skella.schema.generateURL(this.schema.path, this.attributes);
-	}
+	},
+	sync: skella.schema.versionedSync
 });
 
 skella.schema.Schema = Backbone.Model.extend({
@@ -62,6 +77,7 @@ skella.schema.Schema = Backbone.Model.extend({
 		return this.options.url;
 	},
 	populate: function(){
+		this.version = this.get('api').version;
 		for(var i in this.attributes.endpoints){
 			var endpoint = this.attributes.endpoints[i];
 			if(this.hasProperties(endpoint['properties'], ['offset', 'limit', 'objects']) == true){
@@ -69,7 +85,8 @@ skella.schema.Schema = Backbone.Model.extend({
 			}
 			var name = skella.schema.objectifyEndpointName(endpoint['name']);
 			this.api[name] = skella.schema.Model.extend({
-				'schema':endpoint
+				'schema':endpoint,
+				'version':this.version
 			});
 		}
 
@@ -91,7 +108,8 @@ skella.schema.Schema = Backbone.Model.extend({
 			var name = skella.schema.objectifyEndpointName(endpoint['name']);
 			this.api[name] = skella.schema.Collection.extend({
 				'schema':endpoint,
-				'model':model
+				'model':model,
+				'version':this.version
 			});
 		}
 		this.populated = true;
@@ -135,7 +153,8 @@ skella.schema.initialCap = function(val){
 }
 
 $(document).ready(function(){
-	window.schema = new skella.schema.Schema({'url':'/api/schema'});
+	// TODO stop hard coding the API version number here
+	window.schema = new skella.schema.Schema({'url':'/api/0.1.0/schema'});
 	window.schema.fetch();
 })
 

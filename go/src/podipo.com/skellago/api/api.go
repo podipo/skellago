@@ -11,6 +11,8 @@ import (
 	"podipo.com/skellago/be"
 )
 
+var VERSION = "0.1.0"
+
 var logger = log.New(os.Stdout, "[api] ", 0)
 
 func main() {
@@ -48,7 +50,7 @@ func main() {
 	static.Prefix = "/api/static"
 	server.Use(static)
 
-	api := be.NewAPI("/api")
+	api := be.NewAPI("/api/"+VERSION, VERSION)
 
 	server.UseHandler(api.Mux)
 

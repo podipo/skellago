@@ -178,7 +178,7 @@ func (resource UserResource) Put(request *APIRequest) (int, interface{}, http.He
 		return 400, fmt.Sprint("Bad request IDs ", user.Id, updatedUser.Id), responseHeader
 	}
 
-	return 200, user, responseHeader
+	return 200, updatedUser, responseHeader
 }
 
 type UsersResource struct {

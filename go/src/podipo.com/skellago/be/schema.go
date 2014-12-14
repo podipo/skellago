@@ -48,17 +48,17 @@ func (resource SchemaResource) Properties() []Property {
 	return properties
 }
 
-func (tr SchemaResource) Get(request *APIRequest) (int, interface{}, http.Header) {
+func (sr SchemaResource) Get(request *APIRequest) (int, interface{}, http.Header) {
 	header := map[string][]string{}
 
-	endpoints := make([]Schema, len(tr.api.resources))
-	for i, resource := range tr.api.resources {
-		endpoints[i] = schemaFromResource(resource, tr.api.Path)
+	endpoints := make([]Schema, len(sr.api.resources))
+	for i, resource := range sr.api.resources {
+		endpoints[i] = schemaFromResource(resource, sr.api.Path)
 	}
 
 	data := make(map[string]interface{})
 	data["api"] = map[string]string{
-		"version": VERSION,
+		"version": sr.api.Version,
 	}
 	data["endpoints"] = endpoints
 	return 200, data, header

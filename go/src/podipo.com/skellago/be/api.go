@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/coocood/qbs"
 	"github.com/goincremental/negroni-sessions"
@@ -31,6 +32,8 @@ const (
 	// List URL parameters
 	OffsetKey string = "offset"
 	LimitKey  string = "limit"
+
+	AcceptHeaderPrefix = "application/vnd.api+json; version="
 )
 
 var APIListProperties = []Property{
@@ -132,32 +135,52 @@ type PatchSupported interface {
 type API struct {
 	Mux       *mux.Router
 	Path      string
+	Version   string
 	resources []Resource
 }
 
-func NewAPI(path string) *API {
+func NewAPI(path string, version string) *API {
 	api := &API{
 		Mux:       mux.NewRouter(),
 		Path:      path,
+		Version:   version,
 		resources: make([]Resource, 0),
 	}
-	api.AddResource(NewSchemaResource(api))
-	api.AddResource(NewCurrentUserResource())
-	api.AddResource(NewUsersResource())
-	api.AddResource(NewUserResource())
+	api.AddResource(NewSchemaResource(api), false)
+	api.AddResource(NewCurrentUserResource(), true)
+	api.AddResource(NewUsersResource(), true)
+	api.AddResource(NewUserResource(), true)
 	return api
 }
 
-func (api *API) AddResource(resource Resource) {
+func (api *API) AddResource(resource Resource, versioned bool) {
 	api.resources = append(api.resources, resource)
-	api.Mux.HandleFunc(api.Path+resource.Path(), api.createHandlerFunc(resource)).Name(resource.Name())
+	api.Mux.HandleFunc(api.Path+resource.Path(), api.createHandlerFunc(resource, versioned)).Name(resource.Name())
+}
+
+func (api *API) acceptableAcceptHeader(acceptTypes []string) bool {
+	if len(acceptTypes) == 0 {
+		return false
+	}
+	acceptTypes = strings.Split(acceptTypes[0], ",")
+	for _, acceptType := range acceptTypes {
+		if acceptType == AcceptHeaderPrefix+api.Version {
+			return true
+		}
+	}
+	return false
 }
 
 /*
 	Generate the http.HandlerFunc for a given Resource
 */
-func (api *API) createHandlerFunc(resource Resource) http.HandlerFunc {
+func (api *API) createHandlerFunc(resource Resource, versioned bool) http.HandlerFunc {
 	return func(rw http.ResponseWriter, request *http.Request) {
+		if versioned && !api.acceptableAcceptHeader(request.Header["Accept"]) {
+			rw.WriteHeader(http.StatusBadRequest)
+			logger.Print("Bad accept header")
+			return
+		}
 		if request.ParseForm() != nil {
 			rw.WriteHeader(http.StatusBadRequest)
 			return
@@ -233,7 +256,7 @@ func (api *API) createHandlerFunc(resource Resource) http.HandlerFunc {
 			return
 		}
 		rw.Header().Add("Content-Type", "application/json")
-		rw.Header().Add("Skella-Version", VERSION)
+		rw.Header().Add("API-Version", api.Version)
 		for name, values := range header {
 			for _, value := range values {
 				rw.Header().Add(name, value)
