@@ -10,6 +10,10 @@ import (
 func TestPassword(t *testing.T) {
 	DropAndCreateTestDB()
 
+	testApi, err := NewTestAPI()
+	AssertNil(t, err)
+	defer testApi.Stop()
+
 	db, err := qbs.GetQbs()
 	AssertNil(t, err)
 	defer db.Close()
@@ -38,10 +42,6 @@ func TestPassword(t *testing.T) {
 
 func TestUUID(t *testing.T) {
 	// Test the stuff
-	uuid1 := UUID()
-	logger.Print("UUID", uuid1)
-	uuid1 = UUID()
-	logger.Print("UUID", uuid1)
-	uuid1 = UUID()
-	logger.Print("UUID", uuid1)
+	// TODO actually test this
+	AssertNotEqual(t, UUID(), UUID())
 }
