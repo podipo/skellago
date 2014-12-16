@@ -17,6 +17,7 @@ After all is said and done, the Skella back end creates a [Docker](https://www.d
 - User records and authentication
 - API description resource
 - Backbone.js wrapper
+- Go API client
 - Integration with the Skella front end
 
 # Installation
@@ -120,7 +121,6 @@ To stop the containers:
 - option to include skella dist files in api container
 - improve container starting and stopping
 - integration with docker registries
-- Command line API tool
 - Websocket resource events
 
 # License

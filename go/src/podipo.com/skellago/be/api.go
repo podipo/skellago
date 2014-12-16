@@ -94,6 +94,7 @@ type APIRequest struct {
 	DB         *qbs.Qbs
 	Session    sessions.Session
 	User       *User
+	Version    string
 }
 
 /*
@@ -178,7 +179,8 @@ func (api *API) createHandlerFunc(resource Resource, versioned bool) http.Handle
 	return func(rw http.ResponseWriter, request *http.Request) {
 		if versioned && !api.acceptableAcceptHeader(request.Header["Accept"]) {
 			rw.WriteHeader(http.StatusBadRequest)
-			logger.Print("Bad accept header")
+			rw.Write([]byte("Incorrect version in the Accept header"))
+
 			return
 		}
 		if request.ParseForm() != nil {
@@ -234,6 +236,7 @@ func (api *API) createHandlerFunc(resource Resource, versioned bool) http.Handle
 			Body:       request.Body,
 			DB:         db,
 			Session:    sessions.GetSession(request),
+			Version:    api.Version,
 		}
 
 		// Fetch the User from the session
@@ -262,6 +265,13 @@ func (api *API) createHandlerFunc(resource Resource, versioned bool) http.Handle
 				rw.Header().Add(name, value)
 			}
 		}
+
+		// Check whether the client's If-None-Match and the response header's ETag match
+		if rw.Header().Get("Etag") != "" && rw.Header().Get("Etag") == request.Header.Get("If-None-Match") {
+			rw.WriteHeader(http.StatusNotModified)
+			return
+		}
+
 		rw.WriteHeader(code)
 		rw.Write(content)
 	}

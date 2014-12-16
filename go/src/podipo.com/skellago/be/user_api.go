@@ -37,7 +37,7 @@ var UserProperties = []Property{
 		Optional:    true,
 	},
 	Property{
-		Name:        "modified",
+		Name:        "updated",
 		Description: "Modified timestamp",
 		DataType:    "date-time",
 		Optional:    true,
@@ -78,11 +78,16 @@ func (resource CurrentUserResource) Properties() []Property {
 	return UserProperties
 }
 
+func etagForUser(user *User, version string) []string {
+	return []string{"user-" + version + "-" + fmt.Sprintf("%d", user.Updated.UnixNano())}
+}
+
 func (resource CurrentUserResource) Get(request *APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
 	if request.User == nil {
 		return 404, "Not logged in", responseHeader
 	}
+	responseHeader["Etag"] = etagForUser(request.User, request.Version)
 	return 200, request.User, responseHeader
 }
 
@@ -145,6 +150,7 @@ func (resource UserResource) Get(request *APIRequest) (int, interface{}, http.He
 	if err != nil {
 		return 404, "No such user: " + uuid, responseHeader
 	}
+	responseHeader["Etag"] = etagForUser(user, request.Version)
 	return 200, user, responseHeader
 }
 
@@ -175,7 +181,6 @@ func (resource UserResource) Put(request *APIRequest) (int, interface{}, http.He
 	if user.Id != updatedUser.Id {
 		return 400, fmt.Sprint("Bad request IDs ", user.Id, updatedUser.Id), responseHeader
 	}
-
 	return 200, updatedUser, responseHeader
 }
 

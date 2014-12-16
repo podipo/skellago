@@ -63,12 +63,10 @@ func (resource SchemaResource) Properties() []Property {
 
 func (sr SchemaResource) Get(request *APIRequest) (int, interface{}, http.Header) {
 	header := map[string][]string{}
-
 	endpoints := make([]Endpoint, len(sr.api.resources))
 	for i, resource := range sr.api.resources {
 		endpoints[i] = endpointFromResource(resource, sr.api.Path)
 	}
-
 	schemaAPI := SchemaAPI{
 		Version: sr.api.Version,
 	}
