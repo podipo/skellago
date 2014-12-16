@@ -33,8 +33,8 @@ func TestUserAPI(t *testing.T) {
 	_, err = CreatePassword("1234", staff.Id, db)
 	AssertNil(t, err)
 
-	Assert403(t, "GET", testApi.URL()+"/user/")
-	Assert403(t, "GET", testApi.URL()+"/user/"+user.UUID)
+	AssertStatus(t, 401, "GET", testApi.URL()+"/user/")
+	AssertStatus(t, 401, "GET", testApi.URL()+"/user/"+user.UUID)
 
 	userClient, err := NewClient(testApi.URL())
 	AssertNil(t, err)

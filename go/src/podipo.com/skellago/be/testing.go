@@ -37,14 +37,14 @@ func AssertGetString(t *testing.T, url string) string {
 	return string(body)
 }
 
-func Assert403(t *testing.T, method string, url string) {
+func AssertStatus(t *testing.T, status int, method string, url string) {
 	resp, err := connectToTestAPI(method, url)
 	if err != nil {
-		t.Fatalf("Assert403 Failed: %s: %s", url, err.Error())
+		t.Fatalf("AssertStatus Failed: %s: %s", url, err.Error())
 		return
 	}
-	if resp.StatusCode != 403 {
-		t.Fatalf("Assert403 failed with status code %d: %s", resp.StatusCode, url)
+	if resp.StatusCode != status {
+		t.Fatalf("AssertStatus for %d failed with status code %d: %s", status, resp.StatusCode, url)
 		return
 	}
 }

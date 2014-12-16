@@ -141,7 +141,10 @@ func (resource UserResource) Properties() []Property {
 
 func (resource UserResource) Get(request *APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
-	if request.User == nil || request.User.Staff != true {
+	if request.User == nil {
+		return 401, "This api required authentication", responseHeader
+	}
+	if request.User.Staff != true {
 		return 403, "This api is for staff", responseHeader
 	}
 
@@ -156,7 +159,10 @@ func (resource UserResource) Get(request *APIRequest) (int, interface{}, http.He
 
 func (resource UserResource) Put(request *APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
-	if request.User == nil || request.User.Staff != true {
+	if request.User == nil {
+		return 401, "This api required authentication", responseHeader
+	}
+	if request.User.Staff != true {
 		return 403, "This api is for staff", responseHeader
 	}
 
@@ -204,7 +210,10 @@ func (resource UsersResource) Properties() []Property {
 
 func (resource UsersResource) Get(request *APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
-	if request.User == nil || request.User.Staff != true {
+	if request.User == nil {
+		return 401, "This api required authentication", responseHeader
+	}
+	if request.User.Staff != true {
 		return 403, "This api is for staff", responseHeader
 	}
 
