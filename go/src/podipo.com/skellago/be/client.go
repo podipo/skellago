@@ -125,12 +125,20 @@ func (client *Client) GetJSON(url string, target interface{}) error {
 }
 
 func (client *Client) PostJSON(url string, data interface{}) (resp *http.Response, err error) {
+	return client.SendJSON("POST", url, data)
+}
+
+func (client *Client) PutJSON(url string, data interface{}) (resp *http.Response, err error) {
+	return client.SendJSON("PUT", url, data)
+}
+
+func (client *Client) SendJSON(method string, url string, data interface{}) (resp *http.Response, err error) {
 	c := &http.Client{}
 	dataBuff, err := json.Marshal(data)
 	if err != nil {
 		return
 	}
-	req, err := client.prepJSONRequest("POST", client.BaseURL+url, dataBuff)
+	req, err := client.prepJSONRequest(method, client.BaseURL+url, dataBuff)
 	if err != nil {
 		return
 	}
@@ -139,9 +147,22 @@ func (client *Client) PostJSON(url string, data interface{}) (resp *http.Respons
 		return
 	}
 	if resp.StatusCode != 200 {
-		return resp, errors.New("Non-200 error " + strconv.Itoa(resp.StatusCode) + " posting JSON to " + url)
+		return resp, errors.New("Non-200 error " + strconv.Itoa(resp.StatusCode) + " " + method + "ing JSON to " + url)
 	}
 	return
+}
+
+func (client *Client) UpdateUser(user *User) error {
+	resp, err := client.PutJSON("/user/"+user.UUID, user)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	err = json.NewDecoder(resp.Body).Decode(user)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (client *Client) fetchSchema() error {

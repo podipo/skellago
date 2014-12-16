@@ -33,25 +33,30 @@ func TestUserAPI(t *testing.T) {
 	_, err = CreatePassword("1234", staff.Id, db)
 	AssertNil(t, err)
 
-	_, err = FindUserByEmail("adrian@monk.example.com", db)
-	AssertNil(t, err)
-
 	Assert403(t, "GET", testApi.URL()+"/user/")
 	Assert403(t, "GET", testApi.URL()+"/user/"+user.UUID)
 
 	userClient, err := NewClient(testApi.URL())
 	AssertNil(t, err)
+	err = userClient.Authenticate(user.Email, "")
+	AssertNotNil(t, err, "Should have failed with empty password")
+	err = userClient.Authenticate("", "1234")
+	AssertNotNil(t, err, "Should have failed with empty email")
+	err = userClient.Authenticate("", "")
+	AssertNotNil(t, err, "Should have failed with empty login info")
 	err = userClient.Authenticate(user.Email, "4321")
-	AssertNotNil(t, err)
+	AssertNotNil(t, err, "Should have failed with incorrect password")
 	err = userClient.Authenticate(user.Email, "1234")
-	AssertNil(t, err)
+	AssertNil(t, err, "Should have authenticated with proper email and username")
 
 	user2 := new(User)
 	err = userClient.GetJSON("/user/current", user2)
-	AssertNil(t, err)
+	AssertNil(t, err, "Error fetching current user")
 	AssertEqual(t, user.Id, user2.Id)
+	_, err = userClient.GetList("/user/")
+	AssertNotNil(t, err, "Users API should be staff only")
 	err = userClient.GetJSON("/user/"+user2.UUID, user2)
-	AssertNotNil(t, err, "API should be staff only")
+	AssertNotNil(t, err, "User API should be staff only")
 
 	staffClient, err := NewClient(testApi.URL())
 	AssertNil(t, err)
@@ -65,6 +70,22 @@ func TestUserAPI(t *testing.T) {
 	AssertNil(t, err)
 	arr := list.Objects.([]interface{})
 	AssertEqual(t, 2, len(arr))
+
+	// Test that staff can update a User
+	staff2 := new(User)
+	err = staffClient.GetJSON("/user/current", staff2)
+	AssertNil(t, err)
+	staff2.FirstName = "Pickles"
+	staff2.LastName = "McGee"
+	err = staffClient.UpdateUser(staff2)
+	AssertNil(t, err)
+	AssertEqual(t, staff2.FirstName, "Pickles")
+	AssertEqual(t, staff2.LastName, "McGee")
+	staff3 := new(User)
+	err = staffClient.GetJSON("/user/current", staff3)
+	AssertNil(t, err)
+	AssertEqual(t, staff2.FirstName, staff3.FirstName)
+	AssertEqual(t, staff2.LastName, staff3.LastName)
 }
 
 func TestUser(t *testing.T) {
@@ -98,11 +119,7 @@ func TestUser(t *testing.T) {
 
 	// TODO
 	/*
-		Figure out why test DB isn't dropped
 		Test schema API
-		Test authentication
 		Test versioning enforcement
-		Test User API CRUD
-		Test Staff-only enforced on User API
 	*/
 }
