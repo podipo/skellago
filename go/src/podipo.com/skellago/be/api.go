@@ -260,6 +260,7 @@ func (api *API) createHandlerFunc(resource Resource, versioned bool) http.Handle
 		}
 		rw.Header().Add("Content-Type", "application/json")
 		rw.Header().Add("API-Version", api.Version)
+		rw.Header().Add("Request-Id", UUID()) // Useful for tracking requests across the front and back end
 		for name, values := range header {
 			for _, value := range values {
 				rw.Header().Add(name, value)
