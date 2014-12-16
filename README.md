@@ -42,7 +42,6 @@ No matter your OS, you'll need to export a variable naming your docker host:
 
 Now run this to set up your go third party libraries and then build your project:
 
-	make go_get_dependencies
 	make
 
 The first time you kick off a build process, docker will go fetch the containers which build go and host postgres.  So, the first time you run these commands they will be slow, but after that they will be fast.
