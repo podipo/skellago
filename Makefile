@@ -1,4 +1,4 @@
-.PHONY: clean cycle_api compile_api collect_api image_api start_api stop_api go_get_deps image_postgres start_postgres stop_postgres stop_all psql
+.PHONY: clean cycle_api compile_api collect_api image_api start_api stop_api go_get_deps start_postgres stop_postgres stop_all psql
 
 # Generally, this compiles go using a build container and then builds docker images with the results 
 
@@ -8,7 +8,7 @@ BUILD_TAG := podipo/gobuild
 # Local container tags
 API_TAG := api:dev
 API_NAME := api
-POSTGRES_TAG := postgres:dev
+POSTGRES_TAG := postgres
 POSTGRES_NAME := pg
 TEST_NAME := test
 
@@ -73,9 +73,6 @@ install_demo:
 
 test:
 	@DOCKER_FLAGS="$(DOCKER_TEST_ARGS)" $(DKR_BUILD) go test -v $(API_PKGS)
-
-image_postgres:
-	$(DKR_BUILD) docker build --rm -t $(POSTGRES_TAG) /skellago/containers/postgres
 
 start_postgres:
 	docker run -d $(POSTGRES_ARGS) --name $(POSTGRES_NAME) $(POSTGRES_TAG)

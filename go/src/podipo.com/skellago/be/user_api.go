@@ -92,7 +92,6 @@ func (resource CurrentUserResource) Delete(request *APIRequest) (int, interface{
 		return 200, "Ok", responseHeader
 	}
 	request.Session.Delete(UserUUIDKey)
-	logger.Print("Logout: ", request.User.Email)
 	return 200, "Ok", responseHeader
 }
 

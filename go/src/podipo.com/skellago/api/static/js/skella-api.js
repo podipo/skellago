@@ -152,9 +152,11 @@ skella.schema.initialCap = function(val){
 	return val[0].toUpperCase() + val.substring(1);
 }
 
+// TODO stop hard coding the API version number here
+window.API_VERSION = "0.1.0";
+
 $(document).ready(function(){
-	// TODO stop hard coding the API version number here
-	window.schema = new skella.schema.Schema({'url':'/api/0.1.0/schema'});
+	window.schema = new skella.schema.Schema({'url':'/api/' + window.API_VERSION + '/schema'});
 	window.schema.fetch();
 })
 
@@ -163,13 +165,16 @@ $(document).ready(function(){
 */
 skella.api.login = function(email, password, successCallback, errorCallback){
 	$.ajax({
-		url: '/api/user/current',
+		url: '/api/' + window.API_VERSION + '/user/current',
 		method: 'post',
 		contentType: 'application/json',
 		data: JSON.stringify({
 			'email': email,
 			'password': password
 		}),
+		headers :  {
+			'Accept': skella.schema.acceptFormat + window.API_VERSION
+		},
 		error: function(jqXHR, status, error) {
 			if (errorCallback) {
 				errorCallback.apply(this, arguments);
