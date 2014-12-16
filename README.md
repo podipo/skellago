@@ -21,7 +21,7 @@ After all is said and done, the Skella back end creates a [Docker](https://www.d
 
 # Installation
 
-Your development environment will need to be running a linux or OS X.  If you're on Windows, fire up a VM with linux.
+Your development environment will need to be a Linux or OS X.  If you're on Windows, fire up a VM with Linux.
 
 You will need a working docker container and the docker client.  Follow the instructions in the [Docker installation guide](https://docs.docker.com/installation/#installation) for your operating system.
 
