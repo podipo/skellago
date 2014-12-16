@@ -116,9 +116,4 @@ func TestUser(t *testing.T) {
 	user3, err := FindUser(user2.UUID, db)
 	AssertNil(t, err)
 	AssertEqual(t, user2.Email, user3.Email)
-
-	// TODO
-	/*
-		Test versioning enforcement
-	*/
 }
