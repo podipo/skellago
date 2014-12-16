@@ -64,8 +64,30 @@ func (client *Client) Authenticate(email string, password string) error {
 	return nil
 }
 
-func (client *Client) prepJSONRequest(method string, url string, data []byte) (*http.Request, error) {
-	req, err := http.NewRequest(method, url, bytes.NewReader(data))
+func (client *Client) Deauthenticate() error {
+	if client.Session == "" {
+		return nil
+	}
+	client.Session = ""
+	req, err := client.prepJSONRequest("DELETE", client.BaseURL+"/user/current", nil)
+	if err != nil {
+		return err
+	}
+	c := &http.Client{}
+	resp, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+	logger.Print("Header ", resp.Header)
+	return nil
+}
+
+func (client *Client) prepJSONRequest(method string, url string, data []byte) (req *http.Request, err error) {
+	if data == nil {
+		req, err = http.NewRequest(method, url, nil)
+	} else {
+		req, err = http.NewRequest(method, url, bytes.NewReader(data))
+	}
 	if err != nil {
 		return nil, err
 	}

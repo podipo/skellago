@@ -86,6 +86,13 @@ func TestUserAPI(t *testing.T) {
 	AssertNil(t, err)
 	AssertEqual(t, staff2.FirstName, staff3.FirstName)
 	AssertEqual(t, staff2.LastName, staff3.LastName)
+
+	err = userClient.Deauthenticate()
+	AssertNil(t, err)
+	err = staffClient.Deauthenticate()
+	AssertNil(t, err)
+	err = staffClient.Deauthenticate()
+	AssertNil(t, err)
 }
 
 func TestUser(t *testing.T) {

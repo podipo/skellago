@@ -193,8 +193,11 @@ skella.api.login = function(email, password, successCallback, errorCallback){
 */
 skella.api.logout = function(successCallback, errorCallback){
 	$.ajax({
-		url: '/api/user/current',
+		url: '/api/' + window.API_VERSION + '/user/current',
 		method: 'delete',
+		headers :  {
+			'Accept': skella.schema.acceptFormat + window.API_VERSION
+		},
 		error: function(jqXHR, status, error) {
 			if (errorCallback) {
 				errorCallback.apply(this, arguments);
