@@ -1,5 +1,9 @@
 # Skella Back End
 
+<div style="text-align: center;">
+	<img width="150" style="float: left; margin: 0 20px 2px 0;"  src="http://podipo.github.io/skella/images/Skella.png" /> 
+</div>
+
 The [Skella back end](https://github.com/podipo/skellago/) is a skeleton for web API back ends.  It is designed to work with projects based on the [Skella front end](https://github.com/podipo/skella/).
 
 # Technologies
