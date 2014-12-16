@@ -40,6 +40,9 @@ clean: stop_all
 	-rm -rf go/bin go/pkg deploy collect
 	$(DKR_BUILD) docker rmi -f $(API_TAG)
 
+wipe:
+	scripts/wipe.sh
+
 go_get_deps:
 	$(DKR_BUILD) /skellago/scripts/container/go_get_deps.sh
 
