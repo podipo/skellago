@@ -114,7 +114,6 @@ func (resource CurrentUserResource) Post(request *APIRequest) (int, interface{},
 		return 400, "Incorrect password", responseHeader
 	}
 	request.Session.Set(UserUUIDKey, user.UUID)
-	logger.Print("Login: ", user.Email)
 	return 200, user, responseHeader
 }
 

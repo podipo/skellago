@@ -54,7 +54,23 @@ func migrateDB() error {
 	return nil
 }
 
-func DropAndCreateTestDB() error {
+func WipeDB() {
+	db, _ := qbs.GetQbs()
+
+	var passwords []*Password
+	db.FindAll(&passwords)
+	for _, password := range passwords {
+		db.Delete(password)
+	}
+
+	var users []*User
+	db.FindAll(&users)
+	for _, user := range users {
+		db.Delete(user)
+	}
+}
+
+func CreateAndInitDB() error {
 	db, err := sql.Open("postgres", fmt.Sprintf(DBURLFormat, DBUser, DBPass, DBHost, DBPort, DBUser))
 	if err != nil {
 		logger.Print("Open Error: " + err.Error())
@@ -68,11 +84,9 @@ func DropAndCreateTestDB() error {
 		return err
 	}
 
-	db.Exec("drop database " + DBName + ";")
 	_, err = db.Exec("create database " + DBName + ";")
 	if err != nil {
-		logger.Print("Create Error: " + err.Error())
-		return err
+		// Ignoring...
 	}
 
 	InitDB()

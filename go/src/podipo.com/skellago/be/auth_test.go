@@ -8,15 +8,13 @@ import (
 )
 
 func TestPassword(t *testing.T) {
-	DropAndCreateTestDB()
-
-	testApi, err := NewTestAPI()
-	AssertNil(t, err)
-	defer testApi.Stop()
-
+	CreateAndInitDB()
 	db, err := qbs.GetQbs()
 	AssertNil(t, err)
-	defer db.Close()
+	defer func() {
+		WipeDB()
+		db.Close()
+	}()
 
 	user, err := CreateUser("adrian123@monk.example.com", "Adrian", "Monk", false, db)
 	AssertNil(t, err)
@@ -25,6 +23,8 @@ func TestPassword(t *testing.T) {
 	password, err := CreatePassword(plaintext1, user.Id, db)
 	AssertNil(t, err)
 	Assert(t, password.Matches(plaintext1))
+	Assert(t, PasswordMatches(user.Id, plaintext1, db))
+	AssertFalse(t, PasswordMatches(user.Id, "smooth move, sherlock", db))
 	AssertFalse(t, password.Matches("oi oi oi"))
 	AssertFalse(t, password.Matches(""))
 

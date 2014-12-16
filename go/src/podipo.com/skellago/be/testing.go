@@ -86,7 +86,7 @@ func (api *TestAPI) Stop() {
 */
 func NewTestAPI() (*TestAPI, error) {
 	// Set up the usual API + Negroni
-	negServer := negroni.New(negroni.NewLogger())
+	negServer := negroni.New() // add negroni.NewLogger() to see all requests
 	store := sessions.NewCookieStore([]byte(TEST_SESSION_SECRET))
 	negServer.Use(sessions.Sessions(TEST_SESSION_COOKIE, store))
 	api := NewAPI("/api/"+TEST_VERSION, TEST_VERSION)

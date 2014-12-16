@@ -8,15 +8,21 @@ import (
 )
 
 func TestUserAPI(t *testing.T) {
-	DropAndCreateTestDB()
+	CreateAndInitDB()
+	db, err := qbs.GetQbs()
+	AssertNil(t, err)
+	defer func() {
+		WipeDB()
+		db.Close()
+	}()
 
 	testApi, err := NewTestAPI()
 	AssertNil(t, err)
 	defer testApi.Stop()
 
-	db, err := qbs.GetQbs()
+	users, err := FindUsers(0, 100, db)
 	AssertNil(t, err)
-	defer db.Close()
+	AssertEqual(t, 0, len(users), "Need to have 0 users when starting")
 
 	user, err := CreateUser("adrian@monk.example.com", "Adrian", "Monk", false, db)
 	AssertNil(t, err)
@@ -25,6 +31,9 @@ func TestUserAPI(t *testing.T) {
 	staff, err := CreateUser("sherona@monk.example.com", "Sherona", "Smith", true, db)
 	AssertNil(t, err)
 	_, err = CreatePassword("1234", staff.Id, db)
+	AssertNil(t, err)
+
+	_, err = FindUserByEmail("adrian@monk.example.com", db)
 	AssertNil(t, err)
 
 	Assert403(t, "GET", testApi.URL()+"/user/")
@@ -51,14 +60,21 @@ func TestUserAPI(t *testing.T) {
 	err = staffClient.GetJSON("/user/"+user2.UUID, user2)
 	AssertNil(t, err, "API should be readable by staff")
 	AssertEqual(t, user.Id, user2.Id)
+
+	list, err := staffClient.GetList("/user/")
+	AssertNil(t, err)
+	arr := list.Objects.([]interface{})
+	AssertEqual(t, 2, len(arr))
 }
 
 func TestUser(t *testing.T) {
-	DropAndCreateTestDB()
-
+	CreateAndInitDB()
 	db, err := qbs.GetQbs()
 	AssertNil(t, err)
-	defer db.Close()
+	defer func() {
+		WipeDB()
+		db.Close()
+	}()
 
 	user, err := CreateUser("adrian@monk.example.com", "Adrian", "Monk", false, db)
 	AssertNil(t, err)

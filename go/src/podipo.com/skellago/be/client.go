@@ -80,6 +80,28 @@ func (client *Client) prepJSONRequest(method string, url string, data []byte) (*
 	return req, nil
 }
 
+func (client *Client) GetList(url string) (*APIList, error) {
+	c := &http.Client{}
+	req, err := client.prepJSONRequest("GET", client.BaseURL+url, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		return nil, errors.New("Non-200 error " + strconv.Itoa(resp.StatusCode) + " getting list from " + url)
+	}
+	defer resp.Body.Close()
+	list := new(APIList)
+	err = json.NewDecoder(resp.Body).Decode(list)
+	if err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
 func (client *Client) GetJSON(url string, target interface{}) error {
 	c := &http.Client{}
 	req, err := client.prepJSONRequest("GET", client.BaseURL+url, nil)
