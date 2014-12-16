@@ -119,7 +119,6 @@ func TestUser(t *testing.T) {
 
 	// TODO
 	/*
-		Test schema API
 		Test versioning enforcement
 	*/
 }
