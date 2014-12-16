@@ -9,7 +9,7 @@ After all is said and done, the Skella back end creates a [Docker](https://www.d
 # Features
 
 - API resource library
-- Persistence layer using QBS and PostgreSQL
+- Persistence layer using [QBS](https://github.com/coocood/qbs) and PostgreSQL
 - User records and authentication
 - API description resource
 - Backbone.js wrapper
@@ -30,7 +30,7 @@ Now open up a terminal to check out the code:
 	git clone https://github.com/podipo/skellago.git
 	cd skellago
 
-Run this if you're on OS X and need to run boot2docker:
+Run this if you're on OS X and need to run boot2docker using [Vagrant](https://www.vagrantup.com/):
 
 	vagrant up
 
@@ -45,7 +45,7 @@ Now run this to set up your go third party libraries and then build your project
 	make go_get_dependencies
 	make
 
-The first time you kick off a build process, docker will go fetch the container which holds the go build tools.  So, the first time will be slow.
+The first time you kick off a build process, docker will go fetch the containers which build go and host postgres.  So, the first time you run these commands they will be slow, but after that they will be fast.
 
 To test that everything is built and ready, run the following:
 
@@ -71,15 +71,16 @@ To watch the logging on the API service's stdout:
 
 # Adding API resources
 
-TBD
+This skeleton project assumes that you're going to add your own API endpoints and fire up your own special API.  The easiest way to get started is to modify [api.go](https://github.com/podipo/skellago/blob/master/go/src/podipo.com/skellago/api/api.go) with a few example resources, using the [user](https://github.com/podipo/skellago/blob/master/go/src/podipo.com/skellago/be/user_api.go) and [schema](https://github.com/podipo/skellago/blob/master/go/src/podipo.com/skellago/be/schema.go) resources as examples.
 
-To build your go code, package up a new image, start a new container, and then watch the logs:	
+Your normal dev cycle is tweak some go code, rebuild the image, replace any running api container with the new image, and then watch the logs.  Do that using this command:
 
 	make cycle_api
+	# This assumes that you already have a running postgres container
 
 # Testing
 
-TBD
+The Skella back end uses the normal go testing system and includes several handy features for setting up a test DB, a test web API, and a client to exercise the API.  To see how that's done, check out *_test.go files like [user_test.go](https://github.com/podipo/skellago/blob/master/go/src/podipo.com/skellago/be/user_test.go).
 
 To run the tests:
 
