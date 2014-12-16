@@ -4,7 +4,19 @@ import (
 	"net/http"
 )
 
+// JSON data struct with info about the API
+type SchemaAPI struct {
+	Version string `json:"version"`
+}
+
+// JSON data struct for the API's schema
 type Schema struct {
+	API       SchemaAPI  `json:"api"`
+	Endpoints []Endpoint `json:"endpoints"`
+}
+
+// JSON data struct representing an API endpoint
+type Endpoint struct {
 	Name        string     `json:"name"`
 	Path        string     `json:"path"`
 	Title       string     `json:"title"`
@@ -12,6 +24,7 @@ type Schema struct {
 	Properties  []Property `json:"properties"`
 }
 
+// JSON data struct representing a field of an API endpoint
 type Property struct {
 	Name         string `json:"name"`
 	Description  string `json:"description"`
@@ -51,26 +64,28 @@ func (resource SchemaResource) Properties() []Property {
 func (sr SchemaResource) Get(request *APIRequest) (int, interface{}, http.Header) {
 	header := map[string][]string{}
 
-	endpoints := make([]Schema, len(sr.api.resources))
+	endpoints := make([]Endpoint, len(sr.api.resources))
 	for i, resource := range sr.api.resources {
-		endpoints[i] = schemaFromResource(resource, sr.api.Path)
+		endpoints[i] = endpointFromResource(resource, sr.api.Path)
 	}
 
-	data := make(map[string]interface{})
-	data["api"] = map[string]string{
-		"version": sr.api.Version,
+	schemaAPI := SchemaAPI{
+		Version: sr.api.Version,
 	}
-	data["endpoints"] = endpoints
-	return 200, data, header
+	schema := Schema{
+		API:       schemaAPI,
+		Endpoints: endpoints,
+	}
+	return 200, schema, header
 }
 
-func schemaFromResource(resource Resource, apiPath string) Schema {
-	schema := Schema{
+func endpointFromResource(resource Resource, apiPath string) Endpoint {
+	endpoint := Endpoint{
 		Name:        resource.Name(),
 		Path:        apiPath + resource.Path(),
 		Title:       resource.Title(),
 		Description: resource.Description(),
 		Properties:  resource.Properties(),
 	}
-	return schema
+	return endpoint
 }

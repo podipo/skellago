@@ -20,9 +20,37 @@ func TestUserAPI(t *testing.T) {
 
 	user, err := CreateUser("adrian@monk.example.com", "Adrian", "Monk", false, db)
 	AssertNil(t, err)
+	_, err = CreatePassword("1234", user.Id, db)
+	AssertNil(t, err)
+	staff, err := CreateUser("sherona@monk.example.com", "Sherona", "Smith", true, db)
+	AssertNil(t, err)
+	_, err = CreatePassword("1234", staff.Id, db)
+	AssertNil(t, err)
 
 	Assert403(t, "GET", testApi.URL()+"/user/")
 	Assert403(t, "GET", testApi.URL()+"/user/"+user.UUID)
+
+	userClient, err := NewClient(testApi.URL())
+	AssertNil(t, err)
+	err = userClient.Authenticate(user.Email, "4321")
+	AssertNotNil(t, err)
+	err = userClient.Authenticate(user.Email, "1234")
+	AssertNil(t, err)
+
+	user2 := new(User)
+	err = userClient.GetJSON("/user/current", user2)
+	AssertNil(t, err)
+	AssertEqual(t, user.Id, user2.Id)
+	err = userClient.GetJSON("/user/"+user2.UUID, user2)
+	AssertNotNil(t, err, "API should be staff only")
+
+	staffClient, err := NewClient(testApi.URL())
+	AssertNil(t, err)
+	err = staffClient.Authenticate(staff.Email, "1234")
+	AssertNil(t, err)
+	err = staffClient.GetJSON("/user/"+user2.UUID, user2)
+	AssertNil(t, err, "API should be readable by staff")
+	AssertEqual(t, user.Id, user2.Id)
 }
 
 func TestUser(t *testing.T) {
@@ -55,7 +83,6 @@ func TestUser(t *testing.T) {
 	// TODO
 	/*
 		Figure out why test DB isn't dropped
-		Figure out API testing
 		Test schema API
 		Test authentication
 		Test versioning enforcement
