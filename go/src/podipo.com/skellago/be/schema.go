@@ -4,18 +4,18 @@ import (
 	"net/http"
 )
 
-// JSON data struct with info about the API
+// SchemaAPI is a JSON data struct with info about the API
 type SchemaAPI struct {
 	Version string `json:"version"`
 }
 
-// JSON data struct for the API's schema
+// Schema is a JSON data struct for the API's schema
 type Schema struct {
 	API       SchemaAPI  `json:"api"`
 	Endpoints []Endpoint `json:"endpoints"`
 }
 
-// JSON data struct representing an API endpoint
+// Endpoint is a JSON data struct representing an API endpoint
 type Endpoint struct {
 	Name        string     `json:"name"`
 	Path        string     `json:"path"`
@@ -24,7 +24,7 @@ type Endpoint struct {
 	Properties  []Property `json:"properties"`
 }
 
-// JSON data struct representing a field of an API endpoint
+// Property is a JSON data struct representing a field of an API endpoint
 type Property struct {
 	Name         string `json:"name"`
 	Description  string `json:"description"`
@@ -33,6 +33,7 @@ type Property struct {
 	ChildrenType string `json:"children-type,omitempty"` // If this endpoint is a collection, this is the type
 }
 
+// SchemaResource is the API resource which describes the API
 type SchemaResource struct {
 	api *API
 }
@@ -63,7 +64,7 @@ var SchemaProperties = []Property{
 	},
 }
 
-func (resource SchemaResource) Properties() []Property {
+func (sr SchemaResource) Properties() []Property {
 	return SchemaProperties
 }
 

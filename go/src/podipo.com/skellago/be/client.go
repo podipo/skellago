@@ -8,9 +8,7 @@ import (
 	"strconv"
 )
 
-/*
-	A client for interacting with the Skella back end web API
-*/
+// Client interacts with the Skella back end web API
 type Client struct {
 	BaseURL string
 	Schema  Schema
@@ -19,8 +17,8 @@ type Client struct {
 }
 
 /*
-	Create a client for interacting with the Skella back end web API
-	baseURL: a fully qualified URL to the API like http://127.0.0.1:9000/api/0.1.0
+NewClient creates a client for interacting with the Skella back end web API
+baseURL: a fully qualified URL to the API like http://127.0.0.1:9000/api/0.1.0
 */
 func NewClient(baseURL string) (*Client, error) {
 	client := &Client{
@@ -47,7 +45,7 @@ func (client *Client) Authenticate(email string, password string) error {
 	// Look for the session cookie
 	cookies := resp.Cookies()
 	for _, cookie := range cookies {
-		if cookie.Name == TEST_SESSION_COOKIE {
+		if cookie.Name == TestSessionCookie {
 			client.Session = cookie.Value
 		}
 	}
@@ -94,7 +92,7 @@ func (client *Client) prepJSONRequest(method string, url string, data []byte) (r
 	req.Header.Add("Accept", AcceptHeaderPrefix+client.Schema.API.Version)
 	if client.Session != "" {
 		req.AddCookie(&http.Cookie{
-			Name:  TEST_SESSION_COOKIE,
+			Name:  TestSessionCookie,
 			Value: client.Session,
 		})
 	}

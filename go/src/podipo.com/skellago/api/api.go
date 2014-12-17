@@ -11,6 +11,7 @@ import (
 	"podipo.com/skellago/be"
 )
 
+// VERSION is the API version
 var VERSION = "0.1.0"
 
 var logger = log.New(os.Stdout, "[api] ", 0)

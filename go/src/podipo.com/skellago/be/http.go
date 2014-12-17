@@ -29,7 +29,7 @@ func NewStoppableListener(proto string, connect string) (*StoppableListener, err
 	return retval, nil
 }
 
-var StoppedError = errors.New("Listener stopped")
+var ErrStopped = errors.New("Listener stopped")
 
 func (sl *StoppableListener) Accept() (net.Conn, error) {
 	for {
@@ -40,7 +40,7 @@ func (sl *StoppableListener) Accept() (net.Conn, error) {
 		//Check for the channel being closed
 		select {
 		case <-sl.stop:
-			return nil, StoppedError
+			return nil, ErrStopped
 		default:
 			//If the channel is still open, continue as normal
 		}

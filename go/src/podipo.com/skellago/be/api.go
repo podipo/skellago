@@ -17,6 +17,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// GET and the other HTTP methods
 const (
 	GET    = "GET"
 	POST   = "POST"
@@ -24,18 +25,26 @@ const (
 	DELETE = "DELETE"
 	HEAD   = "HEAD"
 	PATCH  = "PATCH"
+)
 
-	// Session constants
+// AuthCookieName and UserUUID are used by the session mechanism
+const (
 	AuthCookieName string = "SkellaAuth"
 	UserUUIDKey    string = "user-uuid"
+)
 
-	// List URL parameters
+// OffsetKey and LimitKey are list URL parameters
+const (
 	OffsetKey string = "offset"
 	LimitKey  string = "limit"
+)
 
+// AcceptHeaderPrefix should be followed by the version in the Accept header of requests
+const (
 	AcceptHeaderPrefix = "application/vnd.api+json; version="
 )
 
+// APIListProperties are the properties any resource which is a list
 var APIListProperties = []Property{
 	Property{
 		Name:        "offset",
@@ -55,7 +64,7 @@ var APIListProperties = []Property{
 }
 
 /*
-	A data structure used when returning a list from an API resource
+APIList is a data structure used when returning a list from an API resource
 */
 type APIList struct {
 	Offset  int         `json:"offset"`
@@ -64,8 +73,9 @@ type APIList struct {
 }
 
 /*
-	By default, return 0, 100
-	If limit and offset are set in the values, return those
+GetOffsetAndLimit find the range values from a request's url.Values
+By default, return 0, 100
+If limit and offset are set in the values, return those
 */
 func GetOffsetAndLimit(values url.Values) (offset int, limit int) {
 	offsetVal, err := strconv.Atoi(values.Get(OffsetKey))
@@ -84,7 +94,7 @@ func GetOffsetAndLimit(values url.Values) (offset int, limit int) {
 }
 
 /*
-	Data for a request to an API endpoint
+APIRequest is data for a request to an API endpoint
 */
 type APIRequest struct {
 	PathValues map[string]string
@@ -98,7 +108,7 @@ type APIRequest struct {
 }
 
 /*
-	An API resource which handles APIRequests to a given URL endpoint
+Resource is and API resource which handles APIRequests to a given URL endpoint
 */
 type Resource interface {
 	Name() string        // The name used by the mux
@@ -109,7 +119,7 @@ type Resource interface {
 }
 
 /*
-	These *Supported interfaces are used by Resources to indicate whether a given HTTP method is supported
+GetSupported and the other interfaces are used by Resources to indicate whether a given HTTP method is supported
 */
 type GetSupported interface {
 	Get(request *APIRequest) (int, interface{}, http.Header)
@@ -131,7 +141,7 @@ type PatchSupported interface {
 }
 
 /*
-	The API collects a tree of Resources, manages the mux, and adds the schema resource
+API collects a tree of Resources, manages the mux, and adds the schema resource
 */
 type API struct {
 	Mux       *mux.Router
@@ -248,9 +258,9 @@ func (api *API) createHandlerFunc(resource Resource, versioned bool) http.Handle
 
 		// Fetch the User from the session
 		if session != nil {
-			s_uuid := session.Get(UserUUIDKey)
-			if s_uuid != nil {
-				uuid, _ := s_uuid.(string)
+			sUUID := session.Get(UserUUIDKey)
+			if sUUID != nil {
+				uuid, _ := sUUID.(string)
 				user, err := FindUser(uuid, db)
 				if err == nil {
 					apiRequest.User = user

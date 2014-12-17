@@ -9,3 +9,4 @@ go get code.google.com/p/go.crypto/bcrypt
 go get github.com/nu7hatch/gouuid
 go get github.com/rs/cors
 go get github.com/goincremental/negroni-sessions
+go get github.com/golang/lint

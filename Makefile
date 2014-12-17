@@ -46,6 +46,9 @@ wipe:
 go_get_deps:
 	$(DKR_BUILD) /skellago/scripts/container/go_get_deps.sh
 
+lint:
+	$(DKR_BUILD) /skellago/scripts/container/lint.sh
+
 clean_deps:
 	-rm -rf go/src/github.com go/src/labix.org go/src/code.google.com go/src/golang.org
 

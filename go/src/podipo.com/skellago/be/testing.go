@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	TEST_VERSION        = "0.T.0"
-	TEST_PORT           = 44556677
-	TEST_SESSION_COOKIE = "test_session"
-	TEST_SESSION_SECRET = "NotVerySecret"
+	TestVersion       = "0.T.0"
+	TestPort          = 44556677
+	TestSessionCookie = "test_session"
+	TestSessionSecret = "NotVerySecret"
 )
 
 func AssertGetString(t *testing.T, url string) string {
@@ -55,12 +55,12 @@ func connectToTestAPI(method string, url string) (resp *http.Response, err error
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add("Accept", AcceptHeaderPrefix+TEST_VERSION)
+	req.Header.Add("Accept", AcceptHeaderPrefix+TestVersion)
 	return client.Do(req)
 }
 
 /*
-	Data for a testable API httpd
+TestAPI is data for a testable API httpd
 */
 type TestAPI struct {
 	API      *API
@@ -69,7 +69,7 @@ type TestAPI struct {
 }
 
 func (api TestAPI) URL() string {
-	return "http://127.0.0.1:" + strconv.Itoa(TEST_PORT) + "/api/" + TEST_VERSION
+	return "http://127.0.0.1:" + strconv.Itoa(TestPort) + "/api/" + TestVersion
 }
 
 func (api *TestAPI) Stop() {
@@ -78,22 +78,22 @@ func (api *TestAPI) Stop() {
 }
 
 /*
-	Creates a testing API server on port TEST_PORT
-	Create and cleanup (synchronously) like so:
-		testAPI, err := NewTestAPI()
-		AssertNil(t, err)
-		defer testAPI.Stop()
+NewTestAPI a testing API server on port TestPort
+Create and cleanup (synchronously) like so:
+	testAPI, err := NewTestAPI()
+	AssertNil(t, err)
+	defer testAPI.Stop()
 */
 func NewTestAPI() (*TestAPI, error) {
 	// Set up the usual API + Negroni
 	negServer := negroni.New() // add negroni.NewLogger() to see all requests
-	store := sessions.NewCookieStore([]byte(TEST_SESSION_SECRET))
-	negServer.Use(sessions.Sessions(TEST_SESSION_COOKIE, store))
-	api := NewAPI("/api/"+TEST_VERSION, TEST_VERSION)
+	store := sessions.NewCookieStore([]byte(TestSessionSecret))
+	negServer.Use(sessions.Sessions(TestSessionCookie, store))
+	api := NewAPI("/api/"+TestVersion, TestVersion)
 	negServer.UseHandler(api.Mux)
 
 	// Set up a stoppable listener so we can clean up afterwards
-	sl, err := NewStoppableListener("tcp", fmt.Sprintf(":%d", TEST_PORT))
+	sl, err := NewStoppableListener("tcp", fmt.Sprintf(":%d", TestPort))
 	if err != nil {
 		return nil, err
 	}

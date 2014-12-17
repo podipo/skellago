@@ -34,10 +34,10 @@ func TestSchemaAPI(t *testing.T) {
 
 	userClient, err := NewClient(testApi.URL())
 	AssertNil(t, err, "Could not create a client")
-	AssertEqual(t, TEST_VERSION, userClient.Schema.API.Version)
+	AssertEqual(t, TestVersion, userClient.Schema.API.Version)
 	userClient, err = NewClient(testApi.URL())
 	AssertNil(t, err, "Could not create another client")
-	AssertEqual(t, TEST_VERSION, userClient.Schema.API.Version)
+	AssertEqual(t, TestVersion, userClient.Schema.API.Version)
 	Assert(t, len(userClient.Schema.Endpoints) >= 3, "Expected at least three endpoints: "+strconv.Itoa(len(userClient.Schema.Endpoints)))
 
 	// Test that the correct version header is required
