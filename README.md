@@ -105,16 +105,15 @@ To stop the containers:
 
 - deployment to CI, AWS, aor GAE
 - backup and restoration
-- Human readable API docs
-- Binary file (esp image) handling
-- Example project
-- [golint](https://github.com/golang/lint)'ing
+- human readable API docs
+- binary file (esp image) handling
+- example project
 - better cleanup after building a container
 - option to include skella dist files in api container
 - improve container starting and stopping
 - integration with docker registries
-- Websocket resource events
-- Rate limiting
+- websocket resource events
+- rate limiting
 
 # License
 
