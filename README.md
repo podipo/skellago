@@ -101,19 +101,11 @@ To stop the containers:
 
 	make clean # stops containers, removes the api image, then deletes the compiled binaries
 
-# To-do
-
-## Ops
+# Possible future features
 
 - deployment to CI, AWS, aor GAE
 - backup and restoration
-
-## Go
-
-- consider [API design foundations](https://github.com/interagent/http-api-design/blob/master/README.md)
-
-## Possible future features
-
+- Human readable API docs
 - Binary file (esp image) handling
 - Example project
 - [golint](https://github.com/golang/lint)'ing
@@ -122,6 +114,7 @@ To stop the containers:
 - improve container starting and stopping
 - integration with docker registries
 - Websocket resource events
+- Rate limiting
 
 # License
 
