@@ -74,11 +74,10 @@ func (client *Client) Deauthenticate() error {
 		return err
 	}
 	c := &http.Client{}
-	resp, err := c.Do(req)
+	_, err = c.Do(req)
 	if err != nil {
 		return err
 	}
-	logger.Print("Header ", resp.Header)
 	return nil
 }
 

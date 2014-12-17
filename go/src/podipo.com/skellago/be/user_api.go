@@ -31,13 +31,13 @@ var UserProperties = []Property{
 		Optional:    true,
 	},
 	Property{
-		Name:        "created",
+		Name:        "created-at",
 		Description: "Created timestamp",
 		DataType:    "date-time",
 		Optional:    true,
 	},
 	Property{
-		Name:        "updated",
+		Name:        "updated-at",
 		Description: "Modified timestamp",
 		DataType:    "date-time",
 		Optional:    true,
@@ -85,7 +85,7 @@ func etagForUser(user *User, version string) []string {
 func (resource CurrentUserResource) Get(request *APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
 	if request.User == nil {
-		return 404, "Not logged in", responseHeader
+		return 404, NotLoggedInError, responseHeader
 	}
 	responseHeader["Etag"] = etagForUser(request.User, request.Version)
 	return 200, request.User, responseHeader
@@ -105,17 +105,24 @@ func (resource CurrentUserResource) Post(request *APIRequest) (int, interface{},
 	var loginData LoginData
 	err := json.NewDecoder(request.Body).Decode(&loginData)
 	if err != nil {
-		return 400, "Error: " + err.Error(), responseHeader
+		return 400, JSONParseError, responseHeader
 	}
 	if loginData.Email == "" || loginData.Password == "" {
-		return 400, "Incorrect login", responseHeader
+		return 400, UnprocessableError, responseHeader
 	}
 	user, err := FindUserByEmail(loginData.Email, request.DB)
 	if err != nil {
-		return 400, "No such user", responseHeader
+		return 400, APIError{
+			Id:      "no_such_user",
+			Message: "No such user",
+			Error:   err.Error(),
+		}, responseHeader
 	}
 	if PasswordMatches(user.Id, loginData.Password, request.DB) == false {
-		return 400, "Incorrect password", responseHeader
+		return 400, APIError{
+			Id:      "incorrect_password",
+			Message: "Incorrect password",
+		}, responseHeader
 	}
 	request.Session.Set(UserUUIDKey, user.UUID)
 	return 200, user, responseHeader
@@ -142,16 +149,20 @@ func (resource UserResource) Properties() []Property {
 func (resource UserResource) Get(request *APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
 	if request.User == nil {
-		return 401, "This api required authentication", responseHeader
+		return 401, NotLoggedInError, responseHeader
 	}
 	if request.User.Staff != true {
-		return 403, "This api is for staff", responseHeader
+		return 403, ForbiddenError, responseHeader
 	}
 
 	uuid, _ := request.PathValues["uuid"]
 	user, err := FindUser(uuid, request.DB)
 	if err != nil {
-		return 404, "No such user: " + uuid, responseHeader
+		return 404, APIError{
+			Id:      "no_such_user",
+			Message: "No such user: " + uuid,
+			Error:   err.Error(),
+		}, responseHeader
 	}
 	responseHeader["Etag"] = etagForUser(user, request.Version)
 	return 200, user, responseHeader
@@ -160,32 +171,36 @@ func (resource UserResource) Get(request *APIRequest) (int, interface{}, http.He
 func (resource UserResource) Put(request *APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
 	if request.User == nil {
-		return 401, "This api required authentication", responseHeader
+		return 401, NotLoggedInError, responseHeader
 	}
 	if request.User.Staff != true {
-		return 403, "This api is for staff", responseHeader
+		return 403, ForbiddenError, responseHeader
 	}
 
 	uuid, _ := request.PathValues["uuid"]
 	user, err := FindUser(uuid, request.DB)
 	if err != nil {
-		return 404, "No such user: " + uuid, responseHeader
+		return 404, APIError{
+			Id:      "no_such_user",
+			Message: "No such user: " + uuid,
+			Error:   err.Error(),
+		}, responseHeader
 	}
 
 	var updatedUser User
 	err = json.NewDecoder(request.Body).Decode(&updatedUser)
 	if err != nil {
-		return 400, "Bad request", responseHeader
+		return 400, BadRequestError, responseHeader
+	}
+	if user.UUID != updatedUser.UUID {
+		return 400, BadRequestError, responseHeader
+	}
+	if user.Id != updatedUser.Id {
+		return 400, BadRequestError, responseHeader
 	}
 	err = UpdateUser(&updatedUser, request.DB)
 	if err != nil {
-		return 400, fmt.Sprint("Bad request ", user), responseHeader
-	}
-	if user.UUID != updatedUser.UUID {
-		return 400, fmt.Sprint("Bad request UUIDs ", user.UUID, updatedUser.UUID), responseHeader
-	}
-	if user.Id != updatedUser.Id {
-		return 400, fmt.Sprint("Bad request IDs ", user.Id, updatedUser.Id), responseHeader
+		return 400, BadRequestError, responseHeader
 	}
 	return 200, updatedUser, responseHeader
 }
@@ -211,16 +226,20 @@ func (resource UsersResource) Properties() []Property {
 func (resource UsersResource) Get(request *APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
 	if request.User == nil {
-		return 401, "This api required authentication", responseHeader
+		return 401, NotLoggedInError, responseHeader
 	}
 	if request.User.Staff != true {
-		return 403, "This api is for staff", responseHeader
+		return 403, ForbiddenError, responseHeader
 	}
 
 	offset, limit := GetOffsetAndLimit(request.Values)
 	users, err := FindUsers(offset, limit, request.DB)
 	if err != nil {
-		return 500, "Could not list users", responseHeader
+		return 500, APIError{
+			Id:      "db_error",
+			Message: "Database error",
+			Error:   err.Error(),
+		}, responseHeader
 	}
 	list := &APIList{
 		Offset:  offset,

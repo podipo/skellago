@@ -50,15 +50,21 @@ func (SchemaResource) Description() string {
 	return "Use this JSON schema to implement your front end API wrapper."
 }
 
+var SchemaProperties = []Property{
+	Property{
+		Name:        "api",
+		Description: "Information about this web API",
+		DataType:    "object",
+	},
+	Property{
+		Name:        "endpoints",
+		Description: "A list of the endpoints in this API",
+		DataType:    "array",
+	},
+}
+
 func (resource SchemaResource) Properties() []Property {
-	properties := []Property{
-		Property{
-			Name:        "api",
-			Description: "Information about this web API",
-			DataType:    "object",
-		},
-	}
-	return properties
+	return SchemaProperties
 }
 
 func (sr SchemaResource) Get(request *APIRequest) (int, interface{}, http.Header) {

@@ -179,8 +179,8 @@ func (api *API) createHandlerFunc(resource Resource, versioned bool) http.Handle
 	return func(rw http.ResponseWriter, request *http.Request) {
 		if versioned && !api.acceptableAcceptHeader(request.Header["Accept"]) {
 			rw.WriteHeader(http.StatusBadRequest)
-			rw.Write([]byte("Incorrect version in the Accept header"))
-
+			errorString, _ := json.MarshalIndent(IncorrectVersionError, "", "")
+			rw.Write(errorString)
 			return
 		}
 		if request.ParseForm() != nil {
@@ -216,13 +216,20 @@ func (api *API) createHandlerFunc(resource Resource, versioned bool) http.Handle
 		}
 		if methodHandler == nil {
 			rw.WriteHeader(http.StatusMethodNotAllowed)
+			errorString, _ := json.MarshalIndent(MethodNotAllowedError, "", "")
+			rw.Write(errorString)
 			return
 		}
 
 		db, err := qbs.GetQbs()
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
-			rw.Write([]byte(err.Error()))
+			jError := APIError{
+				Id:      "db_error",
+				Message: "Database error: " + err.Error(),
+			}
+			errorString, _ := json.MarshalIndent(jError, "", "")
+			rw.Write(errorString)
 			return
 		}
 		defer db.Close()
@@ -255,7 +262,12 @@ func (api *API) createHandlerFunc(resource Resource, versioned bool) http.Handle
 		content, err := json.MarshalIndent(data, "", " ")
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
-			rw.Write([]byte(err.Error()))
+			jError := APIError{
+				Id:      "json_serialization_error",
+				Message: "JSON serialization error: " + err.Error(),
+			}
+			errorString, _ := json.MarshalIndent(jError, "", "")
+			rw.Write(errorString)
 			return
 		}
 		rw.Header().Add("Content-Type", "application/json")
