@@ -144,18 +144,20 @@ type PatchSupported interface {
 API collects a tree of Resources, manages the mux, and adds the schema resource
 */
 type API struct {
-	Mux       *mux.Router
-	Path      string
-	Version   string
-	resources []Resource
+	Mux         *mux.Router
+	Path        string
+	Version     string
+	FileStorage FileStorage
+	resources   []Resource
 }
 
-func NewAPI(path string, version string) *API {
+func NewAPI(path string, version string, fileStorage FileStorage) *API {
 	api := &API{
-		Mux:       mux.NewRouter(),
-		Path:      path,
-		Version:   version,
-		resources: make([]Resource, 0),
+		Mux:         mux.NewRouter(),
+		Path:        path,
+		Version:     version,
+		FileStorage: fileStorage,
+		resources:   make([]Resource, 0),
 	}
 	api.AddResource(NewSchemaResource(api), false)
 	api.AddResource(NewCurrentUserResource(), true)

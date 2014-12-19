@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"testing"
 
@@ -89,7 +90,15 @@ func NewTestAPI() (*TestAPI, error) {
 	negServer := negroni.New() // add negroni.NewLogger() to see all requests
 	store := sessions.NewCookieStore([]byte(TestSessionSecret))
 	negServer.Use(sessions.Sessions(TestSessionCookie, store))
-	api := NewAPI("/api/"+TestVersion, TestVersion)
+	tempDir, err := ioutil.TempDir(os.TempDir(), "test-api-fs")
+	if err != nil {
+		return nil, err
+	}
+	fs, err := NewLocalFileStorage(tempDir)
+	if err != nil {
+		return nil, err
+	}
+	api := NewAPI("/api/"+TestVersion, TestVersion, fs)
 	negServer.UseHandler(api.Mux)
 
 	// Set up a stoppable listener so we can clean up afterwards
