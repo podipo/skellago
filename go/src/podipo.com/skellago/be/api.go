@@ -6,7 +6,6 @@ package be
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -42,6 +41,11 @@ const (
 // AcceptHeaderPrefix should be followed by the version in the Accept header of requests
 const (
 	AcceptHeaderPrefix = "application/vnd.api+json; version="
+)
+
+// StatusInternallyHandled is the signal from an API handler function (e.g. Get(...)) that the request has been fully handled internally and does not require the back end to serialize JSON or other such work.
+const (
+	StatusInternallyHandled = 0
 )
 
 // APIListProperties are the properties any resource which is a list
@@ -98,13 +102,13 @@ APIRequest is data for a request to an API endpoint
 */
 type APIRequest struct {
 	PathValues map[string]string
-	Values     url.Values
-	Header     http.Header
-	Body       io.ReadCloser
 	DB         *qbs.Qbs
+	FS         FileStorage
 	Session    sessions.Session
 	User       *User
 	Version    string
+	Raw        *http.Request
+	Writer     http.ResponseWriter
 }
 
 /*
@@ -127,8 +131,14 @@ type GetSupported interface {
 type PostSupported interface {
 	Post(request *APIRequest) (int, interface{}, http.Header)
 }
+type PostFormSupported interface {
+	PostForm(request *APIRequest) (int, interface{}, http.Header)
+}
 type PutSupported interface {
 	Put(request *APIRequest) (int, interface{}, http.Header)
+}
+type PutFormSupported interface {
+	PutForm(request *APIRequest) (int, interface{}, http.Header)
 }
 type DeleteSupported interface {
 	Delete(request *APIRequest) (int, interface{}, http.Header)
@@ -138,6 +148,9 @@ type HeadSupported interface {
 }
 type PatchSupported interface {
 	Patch(request *APIRequest) (int, interface{}, http.Header)
+}
+type PatchFormSupported interface {
+	PatchForm(request *APIRequest) (int, interface{}, http.Header)
 }
 
 /*
@@ -161,6 +174,7 @@ func NewAPI(path string, version string, fileStorage FileStorage) *API {
 	}
 	api.AddResource(NewSchemaResource(api), false)
 	api.AddResource(NewCurrentUserResource(), true)
+	api.AddResource(NewCurrentUserImage(), false)
 	api.AddResource(NewUsersResource(), true)
 	api.AddResource(NewUserResource(), true)
 	return api
@@ -188,15 +202,15 @@ func (api *API) acceptableAcceptHeader(acceptTypes []string) bool {
 	Generate the http.HandlerFunc for a given Resource
 */
 func (api *API) createHandlerFunc(resource Resource, versioned bool) http.HandlerFunc {
+	isMultipart := func(header http.Header) bool {
+		return strings.Index(header.Get("Content-Type"), "multipart/form-data;") == 0
+	}
+
 	return func(rw http.ResponseWriter, request *http.Request) {
 		if versioned && !api.acceptableAcceptHeader(request.Header["Accept"]) {
 			rw.WriteHeader(http.StatusBadRequest)
-			errorString, _ := json.MarshalIndent(IncorrectVersionError, "", "")
+			errorString, _ := json.Marshal(IncorrectVersionError)
 			rw.Write(errorString)
-			return
-		}
-		if request.ParseForm() != nil {
-			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		var methodHandler func(*APIRequest) (int, interface{}, http.Header)
@@ -206,12 +220,24 @@ func (api *API) createHandlerFunc(resource Resource, versioned bool) http.Handle
 				methodHandler = resource.Get
 			}
 		case POST:
-			if resource, ok := resource.(PostSupported); ok {
-				methodHandler = resource.Post
+			if isMultipart(request.Header) {
+				if resource, ok := resource.(PostFormSupported); ok {
+					methodHandler = resource.PostForm
+				}
+			} else {
+				if resource, ok := resource.(PostSupported); ok {
+					methodHandler = resource.Post
+				}
 			}
 		case PUT:
-			if resource, ok := resource.(PutSupported); ok {
-				methodHandler = resource.Put
+			if isMultipart(request.Header) {
+				if resource, ok := resource.(PutFormSupported); ok {
+					methodHandler = resource.PutForm
+				}
+			} else {
+				if resource, ok := resource.(PutSupported); ok {
+					methodHandler = resource.Put
+				}
 			}
 		case DELETE:
 			if resource, ok := resource.(DeleteSupported); ok {
@@ -222,13 +248,19 @@ func (api *API) createHandlerFunc(resource Resource, versioned bool) http.Handle
 				methodHandler = resource.Head
 			}
 		case PATCH:
-			if resource, ok := resource.(PatchSupported); ok {
-				methodHandler = resource.Patch
+			if isMultipart(request.Header) {
+				if resource, ok := resource.(PatchFormSupported); ok {
+					methodHandler = resource.PatchForm
+				}
+			} else {
+				if resource, ok := resource.(PatchSupported); ok {
+					methodHandler = resource.Patch
+				}
 			}
 		}
 		if methodHandler == nil {
 			rw.WriteHeader(http.StatusMethodNotAllowed)
-			errorString, _ := json.MarshalIndent(MethodNotAllowedError, "", "")
+			errorString, _ := json.Marshal(MethodNotAllowedError)
 			rw.Write(errorString)
 			return
 		}
@@ -240,7 +272,7 @@ func (api *API) createHandlerFunc(resource Resource, versioned bool) http.Handle
 				Id:      "db_error",
 				Message: "Database error: " + err.Error(),
 			}
-			errorString, _ := json.MarshalIndent(jError, "", "")
+			errorString, _ := json.Marshal(jError)
 			rw.Write(errorString)
 			return
 		}
@@ -250,12 +282,12 @@ func (api *API) createHandlerFunc(resource Resource, versioned bool) http.Handle
 
 		apiRequest := &APIRequest{
 			PathValues: mux.Vars(request),
-			Values:     request.Form,
-			Header:     request.Header,
-			Body:       request.Body,
 			DB:         db,
+			FS:         api.FileStorage,
 			Session:    sessions.GetSession(request),
 			Version:    api.Version,
+			Raw:        request,
+			Writer:     rw,
 		}
 
 		// Fetch the User from the session
@@ -270,26 +302,41 @@ func (api *API) createHandlerFunc(resource Resource, versioned bool) http.Handle
 			}
 		}
 
+		if isMultipart(request.Header) && request.ParseMultipartForm(1024) != nil {
+			rw.WriteHeader(http.StatusBadRequest)
+			errorString, _ := json.Marshal(FormParseError)
+			rw.Write(errorString)
+			return
+		}
+
+		rw.Header().Add("API-Version", api.Version)
+		rw.Header().Add("Request-Id", UUID()) // Useful for tracking requests across the front and back end
 		code, data, header := methodHandler(apiRequest)
-		content, err := json.MarshalIndent(data, "", " ")
+
+		// If the handler signaled that it handled the raw request itself, do nothing more
+		if code == StatusInternallyHandled {
+			return
+		}
+		// Not handled internally, so assume that it's the normal JSON API response
+
+		for name, values := range header {
+			for _, value := range values {
+				rw.Header().Add(name, value)
+			}
+		}
+
+		content, err := json.Marshal(data)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			jError := APIError{
 				Id:      "json_serialization_error",
 				Message: "JSON serialization error: " + err.Error(),
 			}
-			errorString, _ := json.MarshalIndent(jError, "", "")
+			errorString, _ := json.Marshal(jError)
 			rw.Write(errorString)
 			return
 		}
 		rw.Header().Add("Content-Type", "application/json")
-		rw.Header().Add("API-Version", api.Version)
-		rw.Header().Add("Request-Id", UUID()) // Useful for tracking requests across the front and back end
-		for name, values := range header {
-			for _, value := range values {
-				rw.Header().Add(name, value)
-			}
-		}
 
 		// Check whether the client's If-None-Match and the response header's ETag match
 		if rw.Header().Get("Etag") != "" && rw.Header().Get("Etag") == request.Header.Get("If-None-Match") {

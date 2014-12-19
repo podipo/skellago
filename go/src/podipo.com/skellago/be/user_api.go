@@ -2,6 +2,8 @@ package be
 
 import (
 	"fmt"
+	"io"
+	"strconv"
 
 	"encoding/json"
 	"net/http"
@@ -46,6 +48,15 @@ var UserProperties = []Property{
 
 var UsersProperties = make([]Property, len(APIListProperties))
 
+var UserImageProperties = []Property{
+	Property{
+		Name:        "image",
+		Description: "The multipart form encoded image representing a user",
+		DataType:    "file",
+		Optional:    false,
+	},
+}
+
 func init() {
 	for index, property := range APIListProperties {
 		UsersProperties[index] = property
@@ -60,6 +71,110 @@ type LoginData struct {
 	Password string "json:password"
 }
 
+/*
+CurrentUserImageResource returns a image the authenticated request.User has a non-empty `image` field
+*/
+type CurrentUserImageResource struct{}
+
+func NewCurrentUserImage() *CurrentUserImageResource {
+	return &CurrentUserImageResource{}
+}
+
+func (CurrentUserImageResource) Name() string                    { return "current-user-image" }
+func (CurrentUserImageResource) Path() string                    { return "/user/current/image" }
+func (CurrentUserImageResource) Title() string                   { return "User image" }
+func (CurrentUserImageResource) Description() string             { return "The image for the authenticated user." }
+func (resource CurrentUserImageResource) Properties() []Property { return UserImageProperties }
+
+func (resource CurrentUserImageResource) Get(request *APIRequest) (int, interface{}, http.Header) {
+	responseHeader := map[string][]string{}
+	if request.User == nil {
+		return 401, NotLoggedInError, responseHeader
+	}
+	if request.User.Image == "" {
+		return 404, FileNotFoundError, responseHeader
+	}
+	imageFile, err := request.FS.Get(request.User.Image)
+	if err != nil {
+		return 500, &APIError{
+			Id:      InternalServerError.Id,
+			Message: "Error reading user image: " + request.User.Image + ": " + err.Error(),
+		}, responseHeader
+	}
+	name, err := imageFile.Name()
+	if err != nil {
+		return 500, &APIError{
+			Id:      InternalServerError.Id,
+			Message: "Error reading file name: " + err.Error(),
+		}, responseHeader
+	}
+	size, err := imageFile.Size()
+	if err != nil {
+		return 500, &APIError{
+			Id:      InternalServerError.Id,
+			Message: "Error reading file size: " + err.Error(),
+		}, responseHeader
+	}
+	reader, err := imageFile.Reader()
+	if err != nil {
+		return 500, &APIError{
+			Id:      InternalServerError.Id,
+			Message: "Error fetching file reader: " + err.Error(),
+		}, responseHeader
+	}
+	request.Raw.Header.Add("Content-Type", MimeTypeFromFileName(name))
+	request.Raw.Header.Add("Content-Length", strconv.FormatInt(size, 10))
+	_, err = io.Copy(request.Writer, reader)
+	if err != nil {
+		logger.Print("Error sending image ", err.Error())
+	}
+
+	// Indicate that the response is complete and not to process it like the usual JSON response
+	return StatusInternallyHandled, nil, nil
+}
+
+func (resource CurrentUserImageResource) PutForm(request *APIRequest) (int, interface{}, http.Header) {
+	responseHeader := map[string][]string{}
+	if request.User == nil {
+		return 401, NotLoggedInError, responseHeader
+	}
+
+	file, fileHeader, err := request.Raw.FormFile("image")
+	if err != nil {
+		return http.StatusBadRequest, &APIError{
+			Id:      "bad_request",
+			Message: "An `image` field is required up update your user image",
+		}, responseHeader
+	}
+	fileKey, err := request.FS.Put(fileHeader.Filename, file)
+	if err != nil {
+		return http.StatusInternalServerError, &APIError{
+			Id:      "storage_error",
+			Message: "Could not store the file: " + err.Error(),
+		}, responseHeader
+	}
+
+	oldFileKey := request.User.Image
+	request.User.Image = fileKey
+	err = UpdateUser(request.User, request.DB)
+	if err != nil {
+		return http.StatusInternalServerError, &APIError{
+			Id:      "database_error",
+			Message: "Could not update the user: " + err.Error(),
+		}, responseHeader
+	}
+	if oldFileKey != "" {
+		err = request.FS.Delete(oldFileKey)
+		if err != nil {
+			logger.Print("Could not delete old image: " + err.Error())
+		}
+	}
+	return 200, "Ok", responseHeader
+}
+
+/*
+CurrentUserResource returns a user if the GET request is authenticated, otherwise a 404 NotLoggedInError
+*/
 type CurrentUserResource struct {
 }
 
@@ -103,7 +218,7 @@ func (resource CurrentUserResource) Delete(request *APIRequest) (int, interface{
 func (resource CurrentUserResource) Post(request *APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
 	var loginData LoginData
-	err := json.NewDecoder(request.Body).Decode(&loginData)
+	err := json.NewDecoder(request.Raw.Body).Decode(&loginData)
 	if err != nil {
 		return 400, JSONParseError, responseHeader
 	}
@@ -188,7 +303,7 @@ func (resource UserResource) Put(request *APIRequest) (int, interface{}, http.He
 	}
 
 	var updatedUser User
-	err = json.NewDecoder(request.Body).Decode(&updatedUser)
+	err = json.NewDecoder(request.Raw.Body).Decode(&updatedUser)
 	if err != nil {
 		return 400, BadRequestError, responseHeader
 	}
@@ -232,7 +347,7 @@ func (resource UsersResource) Get(request *APIRequest) (int, interface{}, http.H
 		return 403, ForbiddenError, responseHeader
 	}
 
-	offset, limit := GetOffsetAndLimit(request.Values)
+	offset, limit := GetOffsetAndLimit(request.Raw.Form)
 	users, err := FindUsers(offset, limit, request.DB)
 	if err != nil {
 		return 500, APIError{

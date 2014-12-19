@@ -13,6 +13,7 @@ type User struct {
 	FirstName string    `json:"first-name"`
 	LastName  string    `json:"last-name"`
 	Staff     bool      `json:"staff"`
+	Image     string    `json:"image"`
 	Created   time.Time `json:"created"`
 	Updated   time.Time `json:"updated"`
 }

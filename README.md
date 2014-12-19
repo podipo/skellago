@@ -104,9 +104,8 @@ To stop the containers:
 # Possible future features
 
 - deployment to CI, AWS, aor GAE
+- cross machine file storage (S3, nfs, etc)
 - backup and restoration
-- human readable API docs
-- binary file (esp image) handling
 - example project
 - better cleanup after building a container
 - option to include skella dist files in api container

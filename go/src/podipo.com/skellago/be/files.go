@@ -68,13 +68,10 @@ func (fs LocalFileStorage) Put(name string, reader io.Reader) (key string, err e
 	key = fs.generateKey(name)
 
 	// Create the temp file with the data from reader
-	tempDir, err := ioutil.TempDir(os.TempDir(), "lfs")
+	tempDir, err := fs.getOrCreateTempDir()
 	if err != nil {
 		return "", err
 	}
-	defer func() {
-		os.RemoveAll(tempDir)
-	}()
 	tempFile, err := ioutil.TempFile(tempDir, "lfs")
 	if err != nil {
 		return "", err
@@ -88,6 +85,7 @@ func (fs LocalFileStorage) Put(name string, reader io.Reader) (key string, err e
 	// the temp file contains the data, now move it into place
 	err = os.Rename(tempFile.Name(), path.Join(fs.RootDir, key))
 	if err != nil {
+		os.Remove(tempFile.Name()) // Best try to remove the temp file since the copy failed
 		return "", err
 	}
 	return key, nil
@@ -139,12 +137,34 @@ func (fs LocalFileStorage) Delete(key string) error {
 	return lf.delete()
 }
 
+// getOrCreateTempDir locates and creates if necessary the dir where files are staged
+// we don't use os.TempDir() because it uses /tmp which is not on the same mount as FILE_STORAGE_DIR so would cause os.Rename to fail
+func (fs LocalFileStorage) getOrCreateTempDir() (dpath string, err error) {
+	dpath = path.Join(fs.RootDir, "temp")
+	stat, err := os.Stat(dpath)
+	if err == nil {
+		if !stat.IsDir() {
+			return "", errors.New(dpath + " exists but is not a directory")
+		}
+		return dpath, nil
+	}
+	// Doesn't exist, try to create it
+	err = os.Mkdir(dpath, os.ModeSticky|0775)
+	if err != nil {
+		return "", err
+	}
+	return dpath, nil
+}
+
 // clean removes any characters which may cause trouble in FS names
 func (fs LocalFileStorage) clean(token string) string {
-	token = strings.Replace(token, "/", "_", -1)
-	token = strings.Replace(token, "..", "_", -1)
-	token = strings.Replace(token, "...", "_", -1)
-	token = strings.Replace(token, "@", "_", -1)
+	token = strings.Replace(token, "/", "-", -1)
+	token = strings.Replace(token, "..", "-", -1)
+	token = strings.Replace(token, "...", "-", -1)
+	token = strings.Replace(token, " ", "-", -1)
+	token = strings.Replace(token, "<", "-", -1)
+	token = strings.Replace(token, ">", "-", -1)
+	token = strings.Replace(token, "@", "-", -1)
 	return token
 }
 

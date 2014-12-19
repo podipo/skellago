@@ -16,6 +16,10 @@ var (
 		Id:      "forbidden",
 		Message: "Forbidden for this user",
 	}
+	FileNotFoundError = APIError{
+		Id:      "file_not_found",
+		Message: "File not found",
+	}
 	JSONParseError = APIError{
 		Id:      "json_parse_error",
 		Message: "JSON parse error",
@@ -32,8 +36,16 @@ var (
 		Id:      "bad_request",
 		Message: "Bad request",
 	}
+	FormParseError = APIError{
+		Id:      "form_parse",
+		Message: "Could not parse the form",
+	}
 	UnprocessableError = APIError{
 		Id:      "unprocessable_error",
 		Message: "Unprocessable",
+	}
+	InternalServerError = APIError{
+		Id:      "internal_server_error",
+		Message: "Internal server error",
 	}
 )
