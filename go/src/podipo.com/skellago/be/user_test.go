@@ -1,6 +1,7 @@
 package be
 
 import (
+	"os"
 	"testing"
 
 	. "github.com/chai2010/assert"
@@ -38,6 +39,11 @@ func TestUserAPI(t *testing.T) {
 
 	userClient, err := NewClient(testApi.URL())
 	AssertNil(t, err)
+	user2 := new(User)
+	err = userClient.GetJSON("/user/current", user2)
+	AssertNotNil(t, err, "Unauthenticated fetch")
+	reader, err := userClient.GetFile("/user/current/image")
+	AssertNotNil(t, err)
 	err = userClient.Authenticate(user.Email, "")
 	AssertNotNil(t, err, "Should have failed with empty password")
 	err = userClient.Authenticate("", "1234")
@@ -49,7 +55,6 @@ func TestUserAPI(t *testing.T) {
 	err = userClient.Authenticate(user.Email, "1234")
 	AssertNil(t, err, "Should have authenticated with proper email and username")
 
-	user2 := new(User)
 	err = userClient.GetJSON("/user/current", user2)
 	AssertNil(t, err, "Error fetching current user")
 	AssertEqual(t, user.Id, user2.Id)
@@ -57,6 +62,20 @@ func TestUserAPI(t *testing.T) {
 	AssertNotNil(t, err, "Users API should be staff only")
 	err = userClient.GetJSON("/user/"+user2.UUID, user2)
 	AssertNotNil(t, err, "User API should be staff only")
+	AssertEqual(t, "", user2.Image)
+	imageFile1, err := tempFile(os.TempDir(), 5)
+	AssertNil(t, err)
+	err = userClient.UpdateUserImage(imageFile1)
+	AssertNil(t, err)
+	err = userClient.GetJSON("/user/current", user2)
+	AssertNil(t, err)
+	Assert(t, user2.Image != "", "User.Image should not be empty")
+	reader, err = userClient.GetFile("/user/current/image")
+	AssertNil(t, err)
+	AssertNotNil(t, reader)
+	_, err = imageFile1.Seek(0, 0)
+	AssertNil(t, err)
+	AssertTrue(t, compareReaderData(reader, imageFile1), "Fetched image file was not the same")
 
 	staffClient, err := NewClient(testApi.URL())
 	AssertNil(t, err)

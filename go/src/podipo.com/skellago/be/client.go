@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
+	"mime/multipart"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -79,26 +82,6 @@ func (client *Client) Deauthenticate() error {
 	return nil
 }
 
-func (client *Client) prepJSONRequest(method string, url string, data []byte) (req *http.Request, err error) {
-	if data == nil {
-		req, err = http.NewRequest(method, url, nil)
-	} else {
-		req, err = http.NewRequest(method, url, bytes.NewReader(data))
-	}
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Accept", AcceptHeaderPrefix+client.Schema.API.Version)
-	if client.Session != "" {
-		req.AddCookie(&http.Cookie{
-			Name:  TestSessionCookie,
-			Value: client.Session,
-		})
-	}
-	return req, nil
-}
-
 func (client *Client) GetList(url string) (*APIList, error) {
 	c := &http.Client{}
 	req, err := client.prepJSONRequest("GET", client.BaseURL+url, nil)
@@ -143,6 +126,51 @@ func (client *Client) GetJSON(url string, target interface{}) error {
 	return nil
 }
 
+func (client *Client) GetFile(url string) (io.Reader, error) {
+	req, err := client.prepRequest("GET", client.BaseURL+url, nil, "")
+	if err != nil {
+		return nil, err
+	}
+	c := &http.Client{}
+	resp, err := c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		return nil, errors.New("Non-200 error " + strconv.Itoa(resp.StatusCode) + " getting file from " + url)
+	}
+	return resp.Body, nil
+}
+
+func (client *Client) SendFile(method string, url string, fieldName string, file *os.File) (resp *http.Response, err error) {
+	var buff bytes.Buffer
+	writer := multipart.NewWriter(&buff)
+	ffWriter, err := writer.CreateFormFile(fieldName, file.Name())
+	if err != nil {
+		return nil, err
+	}
+	if _, err = io.Copy(ffWriter, file); err != nil {
+		return nil, err
+	}
+	writer.Close()
+
+	req, err := http.NewRequest(method, client.BaseURL+url, &buff)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Accept", AcceptHeaderPrefix+client.Schema.API.Version)
+	if client.Session != "" {
+		req.AddCookie(&http.Cookie{
+			Name:  TestSessionCookie,
+			Value: client.Session,
+		})
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	httpClient := &http.Client{}
+	return httpClient.Do(req)
+}
+
 func (client *Client) PostJSON(url string, data interface{}) (resp *http.Response, err error) {
 	return client.SendJSON("POST", url, data)
 }
@@ -171,6 +199,10 @@ func (client *Client) SendJSON(method string, url string, data interface{}) (res
 	return
 }
 
+/*
+UpdateUser and the other *User functions are good examples of how to use the Client
+They use only the public API so you should be able to copy the patterns for your own purposes
+*/
 func (client *Client) UpdateUser(user *User) error {
 	resp, err := client.PutJSON("/user/"+user.UUID, user)
 	if err != nil {
@@ -182,6 +214,46 @@ func (client *Client) UpdateUser(user *User) error {
 		return err
 	}
 	return nil
+}
+
+func (client *Client) UpdateUserImage(imageFile *os.File) error {
+	response, err := client.SendFile("PUT", "/user/current/image", "image", imageFile)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode != 200 {
+		return errors.New("Non-200 error code: " + strconv.Itoa(response.StatusCode))
+	}
+	return nil
+}
+
+func (client *Client) prepJSONRequest(method string, url string, data []byte) (req *http.Request, err error) {
+	if data == nil {
+		return client.prepRequest(method, url, nil, "application/json")
+	}
+	return client.prepRequest(method, url, bytes.NewReader(data), "application/json")
+}
+
+func (client *Client) prepRequest(method string, url string, reader io.Reader, mimetype string) (req *http.Request, err error) {
+	if reader == nil {
+		req, err = http.NewRequest(method, url, nil)
+	} else {
+		req, err = http.NewRequest(method, url, reader)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if mimetype != "" {
+		req.Header.Add("Content-Type", mimetype)
+	}
+	req.Header.Add("Accept", AcceptHeaderPrefix+client.Schema.API.Version)
+	if client.Session != "" {
+		req.AddCookie(&http.Cookie{
+			Name:  TestSessionCookie,
+			Value: client.Session,
+		})
+	}
+	return req, nil
 }
 
 func (client *Client) fetchSchema() error {

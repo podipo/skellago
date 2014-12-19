@@ -1,8 +1,6 @@
 package be
 
 import (
-	"bytes"
-	"io"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -82,50 +80,4 @@ func TestLocalFileStorage(t *testing.T) {
 	AssertNotNil(t, err)
 	AssertNotNil(t, testFS.Delete(lf1.Key()), "That key should no longer exist")
 	AssertNotNil(t, testFS.Delete(lf2.Key()), "That key should no longer exist")
-}
-
-func compareReaderData(file1 io.Reader, file2 io.Reader) bool {
-	buf1 := make([]byte, 1024)
-	n1 := 0
-	buf2 := make([]byte, 1024)
-	n2 := 0
-	for {
-		n1, _ = file1.Read(buf1)
-		n2, _ = file2.Read(buf2)
-		if n1 != n2 {
-			logger.Print("Unbalanced read: ", n1, " ", n2)
-			return false
-		}
-		if bytes.Compare(buf1[0:n1], buf2[0:n2]) != 0 {
-			logger.Print("Different buffers: ", buf1[0:n1], " ", buf2[0:n2])
-			return false
-		}
-		if n1 == 0 {
-			return true
-		}
-	}
-}
-
-func tempFile(dir string, kilobytes int) (*os.File, error) {
-	f, err := ioutil.TempFile(dir, "skella-test-file")
-	if err != nil {
-		return nil, err
-	}
-	if kilobytes > 0 {
-		data := make([]byte, 1024)
-		n := 0
-		for i := 0; i < kilobytes; i++ {
-			n, err = f.Write(data)
-			if err != nil || n != len(data) {
-				f.Close()
-				return nil, err
-			}
-		}
-		_, err = f.Seek(0, 0)
-		if err != nil {
-			f.Close()
-			return nil, err
-		}
-	}
-	return f, nil
 }

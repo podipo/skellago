@@ -101,7 +101,7 @@ func (fs LocalFileStorage) Get(key string) (File, error) {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.New("No such key")
+		return nil, errors.New("No such key: " + lf.key)
 	}
 	return lf, nil
 }
