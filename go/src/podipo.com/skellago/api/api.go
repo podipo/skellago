@@ -33,6 +33,11 @@ func main() {
 		logger.Panic("No FILE_STORAGE_DIR env variable")
 		return
 	}
+	sessionSecret := os.Getenv("SESSION_SECRET")
+	if sessionSecret == "" {
+		logger.Panic("No SESSION_SECRET env variable")
+		return
+	}
 	frontEndDir := os.Getenv("FRONT_END_DIR") // Optional
 
 	logger.Print("PORT:\t\t", port)
@@ -46,8 +51,14 @@ func main() {
 		return
 	}
 
+	fs, err := be.NewLocalFileStorage(fsDir)
+	if err != nil {
+		logger.Panic("Could not open file storage directory: " + fsDir)
+		return
+	}
+
 	server := negroni.New()
-	store := sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
+	store := sessions.NewCookieStore([]byte(sessionSecret))
 	server.Use(sessions.Sessions("api_session", store))
 
 	if frontEndDir != "" {
@@ -59,12 +70,6 @@ func main() {
 	static := negroni.NewStatic(http.Dir(staticDir))
 	static.Prefix = "/api/static"
 	server.Use(static)
-
-	fs, err := be.NewLocalFileStorage(fsDir)
-	if err != nil {
-		logger.Panic("Could not open file storage directory: " + fsDir)
-		return
-	}
 
 	api := be.NewAPI("/api/"+VERSION, VERSION, fs)
 	server.UseHandler(api.Mux)
