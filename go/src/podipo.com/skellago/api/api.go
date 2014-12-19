@@ -17,47 +17,49 @@ var VERSION = "0.1.0"
 var logger = log.New(os.Stdout, "[api] ", 0)
 
 func main() {
-	err := be.InitDB()
-	if err != nil {
-		logger.Panic("DB Registration Error: " + err.Error())
-		return
-	}
-
+	// Get the required environment variables
 	port, err := strconv.ParseInt(os.Getenv("PORT"), 10, 64)
 	if err != nil {
-		port = 9000
+		logger.Panic("No PORT env variable")
+		return
 	}
-	logger.Print("Port:\t\t", port)
-
-	server := negroni.New()
-
-	store := sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
-	server.Use(sessions.Sessions("api_session", store))
-
-	frontEndDir := os.Getenv("FRONT_END_DIR")
-	if frontEndDir != "" {
-		logger.Print("Front end dir:\t", frontEndDir)
-		feStatic := negroni.NewStatic(http.Dir(frontEndDir))
-		feStatic.Prefix = ""
-		server.Use(feStatic)
-	}
-
 	staticDir := os.Getenv("STATIC_DIR")
 	if staticDir == "" {
-		staticDir = "static"
+		logger.Panic("No STATIC_DIR env variable")
+		return
 	}
-	logger.Print("Static dir:\t", staticDir)
-	static := negroni.NewStatic(http.Dir(staticDir))
-	static.Prefix = "/api/static"
-	server.Use(static)
-
 	fsDir := os.Getenv("FILE_STORAGE_DIR")
 	if fsDir == "" {
 		logger.Panic("No FILE_STORAGE_DIR env variable")
 		return
 	}
+	frontEndDir := os.Getenv("FRONT_END_DIR") // Optional
 
-	logger.Print("File storage dir:\t", fsDir)
+	logger.Print("PORT:\t\t", port)
+	logger.Print("STATIC_DIR:\t", staticDir)
+	logger.Print("FRONT_END_DIR:\t", frontEndDir)
+	logger.Print("FILE_STORAGE_DIR:\t", fsDir)
+
+	err = be.InitDB()
+	if err != nil {
+		logger.Panic("DB Registration Error: " + err.Error())
+		return
+	}
+
+	server := negroni.New()
+	store := sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
+	server.Use(sessions.Sessions("api_session", store))
+
+	if frontEndDir != "" {
+		feStatic := negroni.NewStatic(http.Dir(frontEndDir))
+		feStatic.Prefix = ""
+		server.Use(feStatic)
+	}
+
+	static := negroni.NewStatic(http.Dir(staticDir))
+	static.Prefix = "/api/static"
+	server.Use(static)
+
 	fs, err := be.NewLocalFileStorage(fsDir)
 	if err != nil {
 		logger.Panic("Could not open file storage directory: " + fsDir)
@@ -65,8 +67,6 @@ func main() {
 	}
 
 	api := be.NewAPI("/api/"+VERSION, VERSION, fs)
-
 	server.UseHandler(api.Mux)
-
 	server.Run(":" + strconv.FormatInt(port, 10))
 }

@@ -13,6 +13,7 @@ POSTGRES_NAME := pg
 TEST_NAME := test
 
 # TODO: Load these from a config file which is .gitignore'd
+API_PORT := 9000
 FRONT_END_DIR = $(PWD)/../skella/dist
 POSTGRES_DB_NAME := skella
 POSTGRES_TEST_DB_NAME := test
@@ -20,7 +21,6 @@ POSTGRES_USER := skella
 POSTGRES_PASSWORD := seekret
 SESSION_SECRET := "fr0styth3sn0wm@n"
 FILE_STORAGE_DIR := /file_storage
-
 
 POSTGRES_AUTH_ARGS := -e POSTGRES_USER=$(POSTGRES_USER) -e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) 
 POSTGRES_ARGS := $(POSTGRES_AUTH_ARGS) -e POSTGRES_DB_NAME=$(POSTGRES_DB_NAME)
@@ -67,7 +67,7 @@ image_api: collect_api
 	$(DKR_BUILD) docker build -q --rm -t $(API_TAG) /skellago/deploy/containers/api
 
 start_api: stop_api
-	docker run -d $(POSTGRES_ARGS) -e FILE_STORAGE_DIR=$(FILE_STORAGE_DIR) --volumes-from $(POSTGRES_NAME) -v "$(FRONT_END_DIR)":"/opt/root/front_end" -e FRONT_END_DIR=/opt/root/front_end -e SESSION_SECRET="$(SESSION_SECRET)" -p 9000:9000 --link $(POSTGRES_NAME):postgres --name $(API_NAME) $(API_TAG)
+	docker run -d $(POSTGRES_ARGS) -e PORT=$(API_PORT) -e FILE_STORAGE_DIR=$(FILE_STORAGE_DIR) --volumes-from $(POSTGRES_NAME) -v "$(FRONT_END_DIR)":"/opt/root/front_end" -e FRONT_END_DIR=/opt/root/front_end -e SESSION_SECRET="$(SESSION_SECRET)" -p 9000:9000 --link $(POSTGRES_NAME):postgres --name $(API_NAME) $(API_TAG)
 
 stop_api:
 	scripts/container_by_image.sh stop $(API_TAG)
