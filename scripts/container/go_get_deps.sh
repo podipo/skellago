@@ -10,3 +10,4 @@ go get github.com/nu7hatch/gouuid
 go get github.com/rs/cors
 go get github.com/goincremental/negroni-sessions
 go get github.com/golang/lint
+go get github.com/nfnt/resize

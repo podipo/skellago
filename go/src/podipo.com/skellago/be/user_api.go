@@ -94,8 +94,10 @@ func (resource CurrentUserImageResource) Get(request *APIRequest) (int, interfac
 	if request.User.Image == "" {
 		return 404, FileNotFoundError, responseHeader
 	}
-	imageFile, err := request.FS.Get(request.User.Image)
+	// TODO This size should be set via URL params
+	imageFile, err := FitCrop(700, 700, request.User.Image, request.FS)
 	if err != nil {
+		logger.Print("Error with fit crop ", err.Error())
 		return 500, &APIError{
 			Id:      InternalServerError.Id,
 			Message: "Error reading user image: " + request.User.Image + ": " + err.Error(),
@@ -164,7 +166,7 @@ func (resource CurrentUserImageResource) PutForm(request *APIRequest) (int, inte
 		}, responseHeader
 	}
 	if oldFileKey != "" {
-		err = request.FS.Delete(oldFileKey)
+		err = request.FS.Delete(oldFileKey, "")
 		if err != nil {
 			logger.Print("Could not delete old image: " + err.Error())
 		}

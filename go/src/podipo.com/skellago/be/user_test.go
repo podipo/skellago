@@ -63,7 +63,7 @@ func TestUserAPI(t *testing.T) {
 	err = userClient.GetJSON("/user/"+user2.UUID, user2)
 	AssertNotNil(t, err, "User API should be staff only")
 	AssertEqual(t, "", user2.Image)
-	imageFile1, err := tempFile(os.TempDir(), 5)
+	imageFile1, err := TempImage(os.TempDir(), 1000, 1000)
 	AssertNil(t, err)
 	err = userClient.UpdateUserImage(imageFile1)
 	AssertNil(t, err)
@@ -73,9 +73,6 @@ func TestUserAPI(t *testing.T) {
 	reader, err = userClient.GetFile("/user/current/image")
 	AssertNil(t, err)
 	AssertNotNil(t, reader)
-	_, err = imageFile1.Seek(0, 0)
-	AssertNil(t, err)
-	AssertTrue(t, compareReaderData(reader, imageFile1), "Fetched image file was not the same")
 
 	staffClient, err := NewClient(testApi.URL())
 	AssertNil(t, err)

@@ -2,7 +2,12 @@ package be
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"image"
+	"image/color"
+	"image/draw"
+	"image/png"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -125,7 +130,43 @@ func NewTestAPI() (*TestAPI, error) {
 	}, nil
 }
 
-func tempFile(dir string, kilobytes int) (*os.File, error) {
+/*
+TempImage returns a File pointing at a PNG image of the passed width and height
+*/
+func TempImage(dir string, width int, height int) (*os.File, error) {
+	if width <= 0 || height <= 0 {
+		return nil, errors.New(fmt.Sprintf("Bogus dimensions: %dx%d", width, height))
+	}
+	xOffset := 10
+	if width-xOffset*2 <= 0 {
+		xOffset = 0
+	}
+	yOffset := 10
+	if height-yOffset*2 <= 0 {
+		yOffset = 0
+	}
+	// Create a simple image with a border
+	pic := image.NewRGBA(image.Rect(0, 0, 640, 480))
+	blue := color.RGBA{0, 0, 255, 255}
+	bounds := pic.Bounds()
+	draw.Draw(pic, pic.Bounds(), &image.Uniform{blue}, image.ZP, draw.Src)
+	purple := color.RGBA{0, 255, 255, 255}
+	innerRect := image.Rect(bounds.Min.X+xOffset, bounds.Min.Y+yOffset, bounds.Max.X-xOffset, bounds.Max.Y-yOffset)
+	draw.Draw(pic, innerRect, &image.Uniform{purple}, image.ZP, draw.Src)
+	// Write out the image to a file
+	tempFile, err := ioutil.TempFile(dir, "skella-test-image")
+	if err != nil {
+		return nil, err
+	}
+	err = png.Encode(tempFile, pic)
+	if err != nil {
+		return nil, err
+	}
+	tempFile.Seek(0, 0)
+	return tempFile, nil
+}
+
+func TempFile(dir string, kilobytes int) (*os.File, error) {
 	f, err := ioutil.TempFile(dir, "skella-test-file")
 	if err != nil {
 		return nil, err
@@ -149,7 +190,7 @@ func tempFile(dir string, kilobytes int) (*os.File, error) {
 	return f, nil
 }
 
-func compareReaderData(file1 io.Reader, file2 io.Reader) bool {
+func CompareReaderData(file1 io.Reader, file2 io.Reader) bool {
 	buf1 := make([]byte, 1024)
 	n1 := 0
 	buf2 := make([]byte, 1024)
@@ -162,7 +203,7 @@ func compareReaderData(file1 io.Reader, file2 io.Reader) bool {
 			return false
 		}
 		if bytes.Compare(buf1[0:n1], buf2[0:n2]) != 0 {
-			logger.Print("Different buffers: ", buf1[0:n1], " ", buf2[0:n2])
+			logger.Print("Different buffers: ", buf1[0:5], "... ", buf2[0:5], "...")
 			return false
 		}
 		if n1 == 0 {
