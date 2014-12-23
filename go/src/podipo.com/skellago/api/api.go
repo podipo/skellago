@@ -59,7 +59,7 @@ func main() {
 
 	server := negroni.New()
 	store := sessions.NewCookieStore([]byte(sessionSecret))
-	server.Use(sessions.Sessions("api_session", store))
+	server.Use(sessions.Sessions(be.AuthCookieName, store))
 
 	if frontEndDir != "" {
 		feStatic := negroni.NewStatic(http.Dir(frontEndDir))

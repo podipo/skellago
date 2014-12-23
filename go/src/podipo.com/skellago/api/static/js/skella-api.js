@@ -1,9 +1,17 @@
 var skella = skella || {};
 skella.api = skella.api || {};
 skella.schema = skella.schema || {};
+skella.events = skella.events || {};
+
+// Used by the authentication mechanism
+skella.api.sessionCookie = "skella_auth";
+skella.api.emailCookie = "skella_email";
+
+skella.events.SchemaPopulated = 'populated';
+skella.events.LoggedIn = 'logged-in';
+skella.events.LoggedOut = 'logged-out';
 
 skella.schema.pathVariablesRegex = new RegExp('{[^{]+}', 'g');
-
 skella.schema.acceptFormat = "application/vnd.api+json; version="
 
 skella.schema.generateURL = function(path, attributes){
@@ -66,6 +74,7 @@ skella.schema.Schema = Backbone.Model.extend({
 	initialize: function(options){
 		_.bindAll(this, 'populate', 'hasProperties');
 		this.options = options;
+		this.user = null; // Will be set to schema.api.User if the session is authenticated
 		this.api = {}; // This is where we will put the Backbone Models and Collections populated from the schema
 		this.populated = false;
 		if(!this.options.url){
@@ -113,7 +122,7 @@ skella.schema.Schema = Backbone.Model.extend({
 			});
 		}
 		this.populated = true;
-		this.trigger('populated', this);
+		this.trigger(skella.events.SchemaPopulated, this);
 	},
 	getProperty: function(properties, name){
 		for(var i=0; i < properties.length; i++){
@@ -157,8 +166,24 @@ window.API_VERSION = "0.1.0";
 
 $(document).ready(function(){
 	window.schema = new skella.schema.Schema({'url':'/api/' + window.API_VERSION + '/schema'});
+	window.schema.on(skella.events.SchemaPopulated, function(){
+		if(localStorage.user){
+			window.schema.user = new window.schema.api.User(JSON.parse(localStorage.user));
+		} else {
+			window.schema.user = null;
+		}
+	});
 	window.schema.fetch();
 })
+
+/*
+Returns true if the session cookie exists
+This depends on the jquery.cookie plugin: https://github.com/carhartl/jquery-cookie
+*/
+skella.api.loggedIn = function(){
+	var emailCookie = $.cookie(skella.api.emailCookie);
+	return !!emailCookie;
+}
 
 /*
 	Connect to the API and authenticate
@@ -181,6 +206,16 @@ skella.api.login = function(email, password, successCallback, errorCallback){
 			}
 		},
 		success: function(data, status, jqXHR) {
+			$.cookie(skella.api.emailCookie, data.email, {'path':'/'}); // Set a cookie to indicate the the user is authed
+			localStorage.user = JSON.stringify(data); // Used to populate window.schema.user
+			if(window.schema){
+				if(window.schema.user){
+					window.schema.user.set(data);
+				} else {
+					window.schema.user = new window.schema.api.User(data);
+				}
+				window.schema.trigger(skella.events.LoggedIn);
+			}
 			if (successCallback) {
 				successCallback.apply(this, arguments);
 			}
@@ -204,6 +239,13 @@ skella.api.logout = function(successCallback, errorCallback){
 			}
 		},
 		success: function(data, status, jqXHR) {
+			// Delete the cookie and the localStorage
+			$.cookie(skella.api.emailCookie, null, {'expires':-1, 'path':'/'});
+			localStorage.removeItem('user');
+			if(window.schema){
+				window.schema.user = null;
+				window.schema.trigger(skella.events.LoggedOut);
+			}
 			if (successCallback) {
 				successCallback.apply(this, arguments);
 			}

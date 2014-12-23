@@ -28,7 +28,8 @@ const (
 
 // AuthCookieName and UserUUID are used by the session mechanism
 const (
-	AuthCookieName string = "SkellaAuth"
+	AuthCookieName string = "skella_auth"
+	FlagCookieName string = "skella_email"
 	UserUUIDKey    string = "user-uuid"
 )
 
