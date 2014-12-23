@@ -213,7 +213,14 @@ func (resource CurrentUserResource) Delete(request *APIRequest) (int, interface{
 	if request.User == nil {
 		return 200, "Ok", responseHeader
 	}
-	request.Session.Delete(UserUUIDKey)
+	// Instead of clearing the session, which leaves behind a cookie, we delete the entire cookie
+	// Since the cookie is opaque to the client, deleting it makes it easy for the client to decide whether it is authenticated.
+	http.SetCookie(request.Writer, &http.Cookie{
+		Name:   AuthCookieName,
+		Value:  "",
+		Path:   "/",
+		MaxAge: -1,
+	})
 	return 200, "Ok", responseHeader
 }
 

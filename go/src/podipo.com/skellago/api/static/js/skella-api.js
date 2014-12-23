@@ -179,10 +179,10 @@ $(document).ready(function(){
 /*
 Returns true if the session cookie exists
 This depends on the jquery.cookie plugin: https://github.com/carhartl/jquery-cookie
+
 */
 skella.api.loggedIn = function(){
-	var emailCookie = $.cookie(skella.api.emailCookie);
-	return !!emailCookie;
+	return !!$.cookie(skella.api.sessionCookie);
 }
 
 /*
@@ -206,7 +206,6 @@ skella.api.login = function(email, password, successCallback, errorCallback){
 			}
 		},
 		success: function(data, status, jqXHR) {
-			$.cookie(skella.api.emailCookie, data.email, {'path':'/'}); // Set a cookie to indicate the the user is authed
 			localStorage.user = JSON.stringify(data); // Used to populate window.schema.user
 			if(window.schema){
 				if(window.schema.user){
@@ -239,8 +238,7 @@ skella.api.logout = function(successCallback, errorCallback){
 			}
 		},
 		success: function(data, status, jqXHR) {
-			// Delete the cookie and the localStorage
-			$.cookie(skella.api.emailCookie, null, {'expires':-1, 'path':'/'});
+			// Delete the localStorage
 			localStorage.removeItem('user');
 			if(window.schema){
 				window.schema.user = null;
