@@ -297,10 +297,6 @@ func (resource UserResource) Put(request *APIRequest) (int, interface{}, http.He
 	if request.User == nil {
 		return 401, NotLoggedInError, responseHeader
 	}
-	if request.User.Staff != true {
-		return 403, ForbiddenError, responseHeader
-	}
-
 	uuid, _ := request.PathValues["uuid"]
 	user, err := FindUser(uuid, request.DB)
 	if err != nil {
@@ -309,6 +305,9 @@ func (resource UserResource) Put(request *APIRequest) (int, interface{}, http.He
 			Message: "No such user: " + uuid,
 			Error:   err.Error(),
 		}, responseHeader
+	}
+	if request.User.Staff != true && request.User.UUID != user.UUID {
+		return 403, ForbiddenError, responseHeader
 	}
 
 	var updatedUser User
@@ -321,6 +320,14 @@ func (resource UserResource) Put(request *APIRequest) (int, interface{}, http.He
 	}
 	if user.Id != updatedUser.Id {
 		return 400, BadRequestError, responseHeader
+	}
+	// Some fields cannot be updated via this API endpoint
+	updatedUser.Image = user.Image
+	updatedUser.Created = user.Created
+	// Some fields can only be updated by staff
+	if request.User.Staff == false {
+		updatedUser.Staff = user.Staff
+		updatedUser.Email = user.Email
 	}
 	err = UpdateUser(&updatedUser, request.DB)
 	if err != nil {
