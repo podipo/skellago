@@ -169,6 +169,10 @@ $(document).ready(function(){
 	window.schema.on(skella.events.SchemaPopulated, function(){
 		if(localStorage.user){
 			window.schema.user = new window.schema.api.User(JSON.parse(localStorage.user));
+			// Update the localStorage
+			window.schema.user.on('sync', function(){
+				localStorage.user = JSON.stringify(window.schema.user.attributes);
+			});
 		} else {
 			window.schema.user = null;
 		}
@@ -212,6 +216,9 @@ skella.api.login = function(email, password, successCallback, errorCallback){
 					window.schema.user.set(data);
 				} else {
 					window.schema.user = new window.schema.api.User(data);
+					window.schema.user.on('sync', function(){
+						localStorage.user = JSON.stringify(window.schema.user.attributes);
+					});
 				}
 				window.schema.trigger(skella.events.LoggedIn);
 			}
