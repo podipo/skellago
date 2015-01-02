@@ -101,6 +101,12 @@ To stop the containers:
 
 	make clean # stops containers, removes the api image, then deletes the compiled binaries
 
+# Todo
+
+- include FE dist files in api container but mount local dir during FE dev
+- play with CoreOS on AWS
+- figure out QBS migrations
+
 # Possible future features
 
 - deployment to CI, AWS, aor GAE
@@ -108,7 +114,6 @@ To stop the containers:
 - backup and restoration
 - example project
 - better cleanup after building a container
-- option to include skella dist files in api container
 - improve container starting and stopping
 - integration with docker registries
 - websocket resource events
