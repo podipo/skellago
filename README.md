@@ -109,6 +109,7 @@ To stop the containers:
 
 # Possible future features
 
+- unified logging (syslogd, papertrail, [riemann](http://riemann.io/), [heka](https://blog.mozilla.org/services/2013/04/30/introducing-heka/), [sensu](http://sensuapp.org/), [nagios](http://www.nagios.org/))
 - deployment to CI, AWS, aor GAE
 - cross machine file storage (S3, nfs, etc)
 - backup and restoration
