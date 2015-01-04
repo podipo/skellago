@@ -60,6 +60,8 @@ compile_api:
 	$(DKR_BUILD) go install -v $(API_PKGS)
 
 collect_api: compile_api
+	mkdir -p collect/api/front_end/
+	cp -r ${FRONT_END_DIR}/* collect/api/front_end/
 	$(DKR_BUILD) /skellago/scripts/container/create_artifact.sh api
 
 image_api: collect_api
