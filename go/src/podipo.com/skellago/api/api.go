@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/codegangsta/negroni"
 	"github.com/goincremental/negroni-sessions"
@@ -45,6 +47,24 @@ func main() {
 	logger.Print("FRONT_END_DIR:\t", frontEndDir)
 	logger.Print("FILE_STORAGE_DIR:\t", fsDir)
 
+	if be.DBHost == "" { // Try CoreOS etcd
+		etcdJSON, err := be.EtcdGet(os.Getenv("COREOS_PRIVATE_IPV4"), "/v2/keys/services/skella/postgres")
+		if err != nil {
+			logger.Panic("Could not parse the etcd data: " + err.Error())
+			return
+		}
+		logger.Print("Received etcd json: " + etcdJSON)
+		var postgresData EtcPostgresData
+		err = json.NewDecoder(strings.NewReader(etcdJSON)).Decode(&postgresData)
+		if err != nil {
+			logger.Panic("Could not parse the etcd data: " + etcdJSON)
+			return
+		}
+		be.DBHost = postgresData.Host
+		be.DBPort = strconv.Itoa(postgresData.Port)
+	}
+	logger.Print("DB host: ", be.DBHost, ":", be.DBPort)
+
 	err = be.InitDB()
 	if err != nil {
 		logger.Panic("DB Registration Error: " + err.Error())
@@ -74,4 +94,9 @@ func main() {
 	api := be.NewAPI("/api/"+VERSION, VERSION, fs)
 	server.UseHandler(api.Mux)
 	server.Run(":" + strconv.FormatInt(port, 10))
+}
+
+type EtcPostgresData struct {
+	Host string `json:host`
+	Port int    `json:port`
 }

@@ -14,4 +14,4 @@ DKR_ENV="--env GOPATH=$GOPATH \
 	--env GOOS=$GOOS \
 	--env PATH=/go/bin:/usr/src/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$GOBIN"
 
-docker run -ti --rm -v $PWD:$WORKING_DIR $DKR_ENV $* /skellago/scripts/container/install_demo.sh
+docker run -ti --rm -v /skellago:$WORKING_DIR $DKR_ENV $* /skellago/scripts/container/install_demo.sh

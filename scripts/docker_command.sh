@@ -23,7 +23,7 @@ DKR_ENV="--env GOPATH=$GOPATH \
 	--env GOOS=$GOOS \
 	--env PATH=/go/bin:/usr/src/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$GOBIN"
 
-MOUNTS="-v $PWD:$WORKING_DIR"
+MOUNTS="-v /skellago:$WORKING_DIR"
 
 TAG=$1
 shift

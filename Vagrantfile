@@ -1,53 +1,112 @@
 # -*- mode: ruby -*-
-# vi: set ft=ruby :
+# # vi: set ft=ruby :
 
+require 'fileutils'
 
-## In Skellago, Vagrant is used to spin up a docker host.
-
-
-VAGRANTFILE_API_VERSION = "2"
+Vagrant.require_version ">= 1.6.0"
 
 def MapPort(vm, port)
-    vm.network "forwarded_port", guest: port, host_ip: "127.0.0.1", host: port
+    vm.network "forwarded_port", guest: port, host_ip: "0.0.0.0", host: port
 end
 
-Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+CLOUD_CONFIG_PATH = File.join(File.dirname(__FILE__), "config/vagrantfile-user-data")
+CONFIG = File.join(File.dirname(__FILE__), "config/vagrant-config.rb")
 
-	config.vm.define :docko do |docko|
-	    docko.vm.define "docko"
-	    docko.vm.box = "yungsang/boot2docker"
-	    docko.vm.box_version = "= 1.3.1"
+# Defaults for config options defined in CONFIG
+$num_instances = 1
+$update_channel = "alpha"
+$enable_serial_logging = false
+$vb_gui = false
+$vb_memory = 1024
+$vb_cpus = 1
 
-		MapPort(docko.vm, 9000) # api service
+# Attempt to apply the deprecated environment variable NUM_INSTANCES to
+# $num_instances while allowing vagrant-config.rb to override it
+if ENV["NUM_INSTANCES"].to_i > 0 && ENV["NUM_INSTANCES"]
+  $num_instances = ENV["NUM_INSTANCES"].to_i
+end
 
-		docko.vm.network "private_network", ip: "192.168.33.10"
-		docko.vm.synced_folder "~", ENV['HOME'], type: "nfs"
+if File.exist?(CONFIG)
+  require CONFIG
+end
 
-		docko.vm.provider "virtualbox" do |v|
-			v.memory = 4096
-			v.cpus = 4
-		end
+Vagrant.configure("2") do |config|
+  # always use Vagrants insecure key
+  config.ssh.insert_key = false
 
-		# The following two provisions were taken from the yungsang/boot2docker
-		# documentation here: https://vagrantcloud.com/yungsang/boxes/boot2docker
+  config.vm.box = "coreos-%s" % $update_channel
+  config.vm.box_version = ">= 308.0.1"
+  config.vm.box_url = "http://%s.release.core-os.net/amd64-usr/current/coreos_production_vagrant.json" % $update_channel
 
-		# Fix busybox/udhcpc issue
-		docko.vm.provision :shell do |s|
-			s.inline = <<-EOT
-				if ! grep -qs ^nameserver /etc/resolv.conf; then
-					sudo /sbin/udhcpc
-				fi
-				cat /etc/resolv.conf
-			EOT
-		end
+  MapPort(config.vm, 9000) # api service
+  MapPort(config.vm, 5432) # postgres service
 
-		# Adjust datetime after suspend and resume
-		docko.vm.provision :shell do |s|
-			s.inline = <<-EOT
-				sudo /usr/local/bin/ntpclient -s -h pool.ntp.org
-				date
-			EOT
-		end
-	end
+  config.vm.provider :vmware_fusion do |vb, override|
+    override.vm.box_url = "http://%s.release.core-os.net/amd64-usr/current/coreos_production_vagrant_vmware_fusion.json" % $update_channel
+  end
 
+  config.vm.provider :virtualbox do |v|
+    # On VirtualBox, we don't have guest additions or a functional vboxsf
+    # in CoreOS, so tell Vagrant that so it can be smarter.
+    v.check_guest_additions = false
+    v.functional_vboxsf     = false
+  end
+
+  # plugin conflict
+  if Vagrant.has_plugin?("vagrant-vbguest") then
+    config.vbguest.auto_update = false
+  end
+
+  (1..$num_instances).each do |i|
+    config.vm.define vm_name = "core-%02d" % i do |config|
+      config.vm.hostname = vm_name
+
+      if $enable_serial_logging
+        logdir = File.join(File.dirname(__FILE__), "log")
+        FileUtils.mkdir_p(logdir)
+
+        serialFile = File.join(logdir, "%s-serial.txt" % vm_name)
+        FileUtils.touch(serialFile)
+
+        config.vm.provider :vmware_fusion do |v, override|
+          v.vmx["serial0.present"] = "TRUE"
+          v.vmx["serial0.fileType"] = "file"
+          v.vmx["serial0.fileName"] = serialFile
+          v.vmx["serial0.tryNoRxLoss"] = "FALSE"
+        end
+
+        config.vm.provider :virtualbox do |vb, override|
+          vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+          vb.customize ["modifyvm", :id, "--uartmode1", serialFile]
+        end
+      end
+
+      if $expose_docker_tcp
+        config.vm.network "forwarded_port", guest: 2375, host: ($expose_docker_tcp + i - 1), auto_correct: true
+      end
+
+      config.vm.provider :vmware_fusion do |vb|
+        vb.gui = $vb_gui
+      end
+
+      config.vm.provider :virtualbox do |vb|
+        vb.gui = $vb_gui
+        vb.memory = $vb_memory
+        vb.cpus = $vb_cpus
+      end
+
+      ip = "172.17.8.#{i+100}"
+      config.vm.network :private_network, ip: ip
+
+      # Uncomment below to enable NFS for sharing the host machine into the coreos-vagrant VM.
+      config.vm.synced_folder ".", "/skellago", id: "core", :nfs => true, :mount_options => ['nolock,vers=3,udp']
+      config.vm.synced_folder "../skella/dist", "/docroot", id: "core2", :nfs => true, :mount_options => ['nolock,vers=3,udp']
+
+      if File.exist?(CLOUD_CONFIG_PATH)
+        config.vm.provision :file, :source => "#{CLOUD_CONFIG_PATH}", :destination => "/tmp/vagrantfile-user-data"
+        config.vm.provision :shell, :inline => "mv /tmp/vagrantfile-user-data /var/lib/coreos-vagrant/", :privileged => true
+      end
+
+    end
+  end
 end

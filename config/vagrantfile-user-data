@@ -1,0 +1,33 @@
+#cloud-config
+
+---
+coreos:
+  etcd:
+    addr: $public_ipv4:4001
+    peer-addr: $public_ipv4:7001
+    discovery: https://discovery.etcd.io/59727986a0721c68e402e14cf60661b5
+  fleet:
+    public-ip: $public_ipv4
+  units:
+  - name: etcd.service
+    command: start
+  - name: fleet.service
+    command: start
+  - name: docker-tcp.socket
+    command: start
+    enable: true
+    content: |
+      [Unit]
+      Description=Docker Socket for the API
+
+      [Socket]
+      ListenStream=0.0.0.0:2375
+      Service=docker.service
+      BindIPv6Only=both
+
+      [Install]
+      WantedBy=sockets.target
+  - name: enable-docker-tcp.service
+    command: start
+    content: "[Unit]\nDescription=Enable the Docker Socket for the API\n\n[Service]\nType=oneshot\nExecStart=/usr/bin/systemctl
+      enable docker-tcp.socket\n  "
