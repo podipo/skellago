@@ -98,9 +98,14 @@ Vagrant.configure("2") do |config|
       ip = "172.17.8.#{i+100}"
       config.vm.network :private_network, ip: ip
 
-      # Uncomment below to enable NFS for sharing the host machine into the coreos-vagrant VM.
+      # mount the source dir to /skellago in CoreOS so that properly mapped docker containers can do things like compile go
       config.vm.synced_folder ".", "/skellago", id: "core", :nfs => true, :mount_options => ['nolock,vers=3,udp']
-      config.vm.synced_folder "../skella/dist", "/docroot", id: "core2", :nfs => true, :mount_options => ['nolock,vers=3,udp']
+
+      # if there is a front end directory, mount it as /docroot in CoreOS
+      $front_end_dir = "../skella/dist"
+      if File.exist?($front_end_dir)
+        config.vm.synced_folder $front_end_dir, "/docroot", id: "core2", :nfs => true, :mount_options => ['nolock,vers=3,udp']
+      end
 
       if File.exist?(CLOUD_CONFIG_PATH)
         config.vm.provision :file, :source => "#{CLOUD_CONFIG_PATH}", :destination => "/tmp/vagrantfile-user-data"

@@ -59,8 +59,7 @@
     },
     "DiscoveryURL": {
       "Description": "An unique etcd cluster discovery URL. Grab a new token from https://discovery.etcd.io/new",
-      "Type": "String",
-      "Default": "https://discovery.etcd.io/e7c90030ed8ddae2455b84512b772f73"
+      "Type": "String"
     },
     "AdvertisedIPAddress": {
       "Description": "Use 'private' if your etcd cluster is within one region or 'public' if it spans regions or cloud providers.",
@@ -129,6 +128,14 @@
         "GroupName": {"Ref": "CoreOSSecurityGroup"}, "IpProtocol": "tcp", "FromPort": "7001", "ToPort": "7001", "SourceSecurityGroupId": {
           "Fn::GetAtt" : [ "CoreOSSecurityGroup", "GroupId" ] 
         } 
+      }
+    },
+    "Ingress5432": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupName": {"Ref": "CoreOSSecurityGroup"}, "IpProtocol": "tcp", "FromPort": "5432", "ToPort": "5432", "SourceSecurityGroupId": {
+          "Fn::GetAtt" : [ "CoreOSSecurityGroup", "GroupId" ] 
+        }
       }
     },
     "CoreOSServerAutoScale": {

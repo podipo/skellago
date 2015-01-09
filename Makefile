@@ -6,7 +6,10 @@
 BUILD_TAG := podipo/gobuild
 
 # Local container tags
+# API_TAG is used in dev
 API_TAG := skella:dev
+# API_REPO_TAG is pushed to docker hub
+API_REPO_TAG := podipo/skella
 API_NAME := api
 POSTGRES_TAG := postgres
 POSTGRES_NAME := pg
@@ -58,22 +61,27 @@ compile_api:
 	$(DKR_BUILD) go install -v $(API_PKGS)
 
 collect_api: compile_api
-	mkdir -p collect/api/front_end/
-	cp -r ${FRONT_END_DIR}/* collect/api/front_end/
+	@FRONT_END_DIR="$(FRONT_END_DIR)" scripts/collect_front_end.sh
 	$(DKR_BUILD) /skellago/scripts/container/create_artifact.sh api
+	$(DKR_BUILD) /skellago/scripts/container/prepare_image.sh /skellago/containers/api /skellago/collect/api-artifact.tar.gz /skellago/deploy/containers/api
+
+image_api_production: collect_api
+	docker build -q --rm -t $(API_REPO_TAG) $(PWD)/deploy/containers/api
 
 image_api: collect_api
-	$(DKR_BUILD) /skellago/scripts/container/prepare_image.sh /skellago/containers/api /skellago/collect/api-artifact.tar.gz /skellago/deploy/containers/api
 	docker build -q --rm -t $(API_TAG) $(PWD)/deploy/containers/api
 
 start_api: stop_api
-	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl load skella.service && fleetctl start skella.service"
+	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl load skella-dev.service && fleetctl start skella-dev.service"
 
 stop_api:
-	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl stop skella.service && fleetctl destroy skella.service"
+	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl stop skella-dev.service && fleetctl destroy skella-dev.service"
 
 watch_api:
-	$(COREOS_COMMAND) "journalctl -f -u skella.service"
+	$(COREOS_COMMAND) "journalctl -f -u skella-dev.service"
+
+watch_postgres:
+	$(COREOS_COMMAND) "journalctl -f -u postgres.service"
 
 list_units:
 	$(COREOS_COMMAND) "fleetctl list-units"
