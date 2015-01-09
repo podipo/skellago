@@ -6,7 +6,10 @@
 BUILD_TAG := podipo/gobuild
 
 # Local container tags
-API_TAG := api:dev
+# API_TAG is used in dev
+API_TAG := skella:dev
+# API_REPO_TAG is pushed to docker hub
+API_REPO_TAG := podipo/skella
 API_NAME := api
 POSTGRES_TAG := postgres
 POSTGRES_NAME := pg
@@ -30,6 +33,8 @@ DOCKER_TEST_ARGS := $(POSTGRES_AUTH_ARGS) -e POSTGRES_DB_NAME=$(POSTGRES_TEST_DB
 # The list of paths to build with Go
 API_PKGS := podipo.com/skellago/...
 
+COREOS_COMMAND := scripts/coreos_command.sh
+
 # The prefix for running one-off commands in transient Docker containers
 DKR_COMMAND := scripts/docker_command.sh
 
@@ -39,11 +44,7 @@ DKR_BUILD := $(DKR_COMMAND) $(BUILD_TAG)
 all: go_get_deps image_api
 
 clean: stop_all
-	-rm -rf go/bin go/pkg deploy collect
-	$(DKR_BUILD) docker rmi -f $(API_TAG)
-
-wipe:
-	scripts/wipe.sh
+	rm -rf go/bin go/pkg deploy collect
 
 go_get_deps:
 	$(DKR_BUILD) /skellago/scripts/container/go_get_deps.sh
@@ -52,7 +53,7 @@ lint:
 	$(DKR_BUILD) /skellago/scripts/container/lint.sh
 
 clean_deps:
-	-rm -rf go/src/github.com go/src/labix.org go/src/code.google.com go/src/golang.org
+	rm -rf go/src/github.com go/src/labix.org go/src/code.google.com go/src/golang.org
 
 cycle_api: stop_api image_api start_api watch_api
 
@@ -60,23 +61,30 @@ compile_api:
 	$(DKR_BUILD) go install -v $(API_PKGS)
 
 collect_api: compile_api
-	mkdir -p collect/api/front_end/
-	cp -r ${FRONT_END_DIR}/* collect/api/front_end/
+	@FRONT_END_DIR="$(FRONT_END_DIR)" scripts/collect_front_end.sh
 	$(DKR_BUILD) /skellago/scripts/container/create_artifact.sh api
+	$(DKR_BUILD) /skellago/scripts/container/prepare_image.sh /skellago/containers/api /skellago/collect/api-artifact.tar.gz /skellago/deploy/containers/api
+
+image_api_production: collect_api
+	docker build -q --rm -t $(API_REPO_TAG) $(PWD)/deploy/containers/api
 
 image_api: collect_api
-	$(DKR_BUILD) /skellago/scripts/container/prepare_image.sh /skellago/containers/api /skellago/collect/api-artifact.tar.gz /skellago/deploy/containers/api
-	$(DKR_BUILD) docker build -q --rm -t $(API_TAG) /skellago/deploy/containers/api
+	docker build -q --rm -t $(API_TAG) $(PWD)/deploy/containers/api
 
 start_api: stop_api
-	docker run -d $(POSTGRES_ARGS) -e PORT=$(API_PORT) -e FILE_STORAGE_DIR=$(FILE_STORAGE_DIR) --volumes-from $(POSTGRES_NAME) -v "$(FRONT_END_DIR)":"/opt/root/front_end" -e FRONT_END_DIR=/opt/root/front_end -e SESSION_SECRET="$(SESSION_SECRET)" -p 9000:9000 --link $(POSTGRES_NAME):postgres --name $(API_NAME) $(API_TAG)
+	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl load skella-dev.service && fleetctl start skella-dev.service"
 
 stop_api:
-	scripts/container_by_image.sh stop $(API_TAG)
-	scripts/container_by_image.sh rm $(API_TAG)
+	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl stop skella-dev.service && fleetctl destroy skella-dev.service"
 
 watch_api:
-	scripts/watch_api.sh
+	$(COREOS_COMMAND) "journalctl -f -u skella-dev.service"
+
+watch_postgres:
+	$(COREOS_COMMAND) "journalctl -f -u postgres.service"
+
+list_units:
+	$(COREOS_COMMAND) "fleetctl list-units"
 
 install_demo:
 	scripts/install_demo.sh $(POSTGRES_ARGS) --link $(POSTGRES_NAME):postgres $(BUILD_TAG) 
@@ -85,11 +93,11 @@ test:
 	@DOCKER_FLAGS="$(DOCKER_TEST_ARGS)" $(DKR_BUILD) go test -v $(API_PKGS)
 
 start_postgres:
-	docker run -d $(POSTGRES_ARGS) -v $(FILE_STORAGE_DIR) --name $(POSTGRES_NAME) $(POSTGRES_TAG)
+	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl load postgres-sidekick.service postgres.service && fleetctl start postgres-sidekick.service"
 
 stop_postgres:
-	scripts/container_by_image.sh stop $(POSTGRES_TAG)
-	scripts/container_by_image.sh rm $(POSTGRES_TAG)
+	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl stop postgres-sidekick.service && fleetctl destroy postgres-sidekick.service"
+	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl stop postgres.service && fleetctl destroy postgres.service"
 
 psql:
 	scripts/db_shell.sh $(POSTGRES_USER) $(POSTGRES_PASSWORD)

@@ -1,4 +1,4 @@
-# Skella Back End
+# Skella Back End by [Podipo](http://podipo.com/)
 
 <div style="text-align: center;">
 	<img width="150" style="float: left; margin: 0 20px 2px 0;"  src="http://podipo.github.io/skella/images/Skella.png" /> 
@@ -8,7 +8,13 @@ The [Skella back end](https://github.com/podipo/skellago/) is a skeleton for web
 
 # Technologies
 
-After all is said and done, the Skella back end creates a [Docker](https://www.docker.com) container running a web API which is backed by another container running PostgreSQL.  The web API is written in [Go](http://golang.org/) using the [Negroni](http://negroni.codegangsta.io/) framework.  The API provides a JSON description of itself which is used to automatically create a [Backbone.js](http://backbonejs.org/) wrapper.  It is through Backbone Models and Collections that the Skella front end connects to the Skella back end.
+The Skella back end compiles [go](http://golang.org/) code to produce a web server running in a [Docker](https://www.docker.com) container.  The default production environment is [CoreOS](https://coreos.com/) running in an [CloudFormation](https://aws.amazon.com/cloudformation/) stack on [AWS](http://aws.amazon.com/), but the docker images are portable to other environments.
+
+The Skella back end is designed to produce fantastic web APIs at great speed. It does not handle the user experience side of things other than to serve up static files.  You will want to use one of the many [excellent front end toolkits](https://github.com/podipo/skella/) to produce your HTML, Javascript, and CSS, which the skella back end will then happily serve.
+
+The web API is written on top of the [Negroni](http://negroni.codegangsta.io/) framework.  Negroni has the nice property that it plays nicely with [go's net/http](http://golang.org/pkg/net/http/), so mixing the Skella back end with other go web packages (e.g. a websocket event server) is not hard.
+
+Skella's web API provides a JSON description of itself which is used to automatically create a [Backbone.js](http://backbonejs.org/) wrapper.  It is through Backbone Models and Collections that the Skella front end connects to the Skella back end.  The JSON description is language and framework agnostic, so users of [other client frameworks](http://vanilla-js.com/) should have no problem using Skella.
 
 # Features
 
@@ -18,30 +24,30 @@ After all is said and done, the Skella back end creates a [Docker](https://www.d
 - API description resource
 - Backbone.js wrapper
 - Go API client
-- Integration with the Skella front end
+- Integration with the [Skella front end](https://github.com/podipo/skella/)
 
 # Installation
 
-Your development environment will need to be a Linux or OS X.  If you're on Windows, fire up a VM with Linux.
+The Skella back end development environment is CoreOS running in [Vagrant](https://www.vagrantup.com/) hosted on OS X or Linux.  You need a working Vagrant installation, but you don't need to directly install CoreOS as it will be running in a Vagrant managed VM.
 
-You will need a working docker container and the docker client.  Follow the instructions in the [Docker installation guide](https://docs.docker.com/installation/#installation) for your operating system.
+You will need a docker client on your host OS.  Follow the instructions in the [Docker installation guide](https://docs.docker.com/installation/#installation) for your operating system.
 
-If you don't already have git, follow the [git download instructions](http://www.git-scm.com/downloads).
+If you don't already have git then follow the [git download instructions](http://www.git-scm.com/downloads).
 
-If you don't already have `make`, you'll need to install it.  On OS X, that usually means installing X Code.
+If you don't already have make then you'll need to install it.  On OS X, that usually means installing X Code.
 
 Now open up a terminal to check out the code:
 
 	git clone https://github.com/podipo/skellago.git
 	cd skellago
 
-Run this if you're on OS X and need to run boot2docker using [Vagrant](https://www.vagrantup.com/):
+Now fire up CoreOS (and thus Docker) using Vagrant:
 
 	vagrant up
 
-On linux, make sure that the docker daemon is running.
+Note: At each of the next few steps, the build system will need to download a lot of images for CoreOS, Postgres, Debian, etc.  This takes a while the first time but have no fear, those downloads happen only on the first run and after that development and management is quite snappy.
 
-No matter your OS, you'll need to export a variable naming your docker host:
+To talk to docker you'll need to export a variable naming your docker host:
 
 	export DOCKER_HOST=tcp://:2375 # Or wherever docker is running
 
@@ -57,13 +63,13 @@ To test that everything is built and ready, run the following:
 	make start_api      # fire up the API container
 	make install_demo   # load up the DB with some example users
 
-Now point your browser at [127.0.0.1:9000/api/schema](http://127.0.0.1:9000/api/schema) and you should see JSON describing the API endpoints.
+Now point your browser at [127.0.0.1:9000/api/0.1.0/schema](http://127.0.0.1:9000/api/0.1.0/schema) and you should see JSON describing the API endpoints.
 
 # Development
 
-If this is your first time using the Skella back end and you just want to see it in action, the easiest thing to do is to set up the Skella front end in a directory next to the skellago directory.  Go follow the instructions on the [Skella front end readme](https://github.com/podipo/skella/) to build skella.  The Skella back end assumes that the `skella` and `skellago` directories are next to each other and it serves `skella/dist/index.html` when you hit [127.0.0.1:9000](http://127.0.0.1:9000/).
+If this is your first time using the Skella back end and you just want to see it in action, the easiest thing to do is to set up the Skella front end in a directory next to the skellago directory.  Go follow the instructions on the [Skella front end readme](https://github.com/podipo/skella/) to build the Skella front end and then use `make cycle_api` to rebuild the Skella back end.  The Skella back end assumes that the `skella` and `skellago` directories are next to each other and it serves `skella/dist/index.html` when you hit [127.0.0.1:9000](http://127.0.0.1:9000/).
 
-So, assuming that the Skella front end is now being served by the back end and that you ran the `install_demo` target listed above, you should be able to authenticate with the back end from [127.0.0.1:9000/login/](http://127.0.0.1:9000/login/) using the email `alice@example.com` and the password `1234`.
+So, assuming that the Skella front end is now being served by the back end and that you ran the `make install_demo` target listed above, you should be able to authenticate with the back end from [127.0.0.1:9000/login/](http://127.0.0.1:9000/login/) using the email `alice@example.com` and the password `1234`.
 
 To connect directly to the database with psql:
 
@@ -80,7 +86,7 @@ This skeleton project assumes that you're going to add your own API endpoints an
 Your normal dev cycle is tweak some go code, rebuild the image, replace any running api container with the new image, and then watch the logs.  Do that using this command:
 
 	make cycle_api
-	# This assumes that you already have a running postgres container
+	# This assumes that you have already started a postgres container with `make start_postgres`
 
 # Testing
 
@@ -96,28 +102,23 @@ To stop the containers:
 
 	make stop_api
 	make stop_postgres
-	# or to stop both
-	make stop_all
 
-	make clean # stops containers, removes the api image, then deletes the compiled binaries
+To stop containers and delete the compiled binaries:
 
+	make clean
+	
 # Todo
 
-- include FE dist files in api container but mount local dir during FE dev
-- play with CoreOS on AWS
+- figure out a file persistence story on AWS
 - figure out QBS migrations
 
 # Possible future features
 
 - unified logging (syslogd, papertrail, [riemann](http://riemann.io/), [heka](https://blog.mozilla.org/services/2013/04/30/introducing-heka/), [sensu](http://sensuapp.org/), [nagios](http://www.nagios.org/))
-- deployment to CI, AWS, aor GAE
 - cross machine file storage (S3, nfs, etc)
 - backup and restoration
 - example project
-- better cleanup after building a container
-- improve container starting and stopping
-- integration with docker registries
-- websocket resource events
+- websocket resource pubsub and rpc, perhaps [wamp](http://wamp.ws/spec/)
 - rate limiting
 
 # License
