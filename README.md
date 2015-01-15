@@ -1,7 +1,7 @@
 # Skella Back End by [Podipo](http://podipo.com/)
 
 <div style="text-align: center;">
-	<img width="150" style="float: left; margin: 0 20px 2px 0;"  src="http://podipo.github.io/skella/images/Skella.png" /> 
+	<img width="150" style="float: left; margin: 0 20px 2px 0;"  src="http://podipo.github.io/skella/images/Skella-logo-300.png" /> 
 </div>
 
 The [Skella back end](https://github.com/podipo/skellago/) is a skeleton for web API back ends.  It is designed to work with projects based on the [Skella front end](https://github.com/podipo/skella/).
@@ -120,6 +120,9 @@ To stop containers and delete the compiled binaries:
 - example project
 - websocket resource pubsub and rpc, perhaps [wamp](http://wamp.ws/spec/)
 - rate limiting
+- brute force auth delays
+- monitoring
+- CDN
 
 # License
 
