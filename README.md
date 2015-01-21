@@ -41,6 +41,8 @@ Now open up a terminal to check out the code:
 	git clone https://github.com/podipo/skellago.git
 	cd skellago
 
+Open [https://discovery.etcd.io/new](https://discovery.etcd.io/new) in your browser and cut and paste the resulting URL into the `discovery` field of config/vagrantfile-user-data so that your wee CoreOS cluster can find itself using etcd.
+
 Now fire up CoreOS (and thus Docker) using Vagrant:
 
 	vagrant up
