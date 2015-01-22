@@ -110,7 +110,7 @@ To stop containers and delete the compiled binaries:
 	make clean
 	
 # Todo
-
+- vendor our go depenencies, perhaps with godep
 - figure out a file persistence story on AWS
 - figure out QBS migrations
 
