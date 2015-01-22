@@ -10,6 +10,7 @@ import (
 
 	"github.com/codegangsta/negroni"
 	"github.com/goincremental/negroni-sessions"
+	"github.com/goincremental/negroni-sessions/cookiestore"
 	"podipo.com/skellago/be"
 )
 
@@ -78,7 +79,7 @@ func main() {
 	}
 
 	server := negroni.New()
-	store := sessions.NewCookieStore([]byte(sessionSecret))
+	store := cookiestore.New([]byte(sessionSecret))
 	server.Use(sessions.Sessions(be.AuthCookieName, store))
 
 	if frontEndDir != "" {
