@@ -5,56 +5,55 @@
       "RegionMap" : {
 
           "eu-central-1" : {
-              "AMI" : "ami-4e7d4d53"
+              "AMI" : "ami-468dbd5b"
           },
 
           "ap-northeast-1" : {
-              "AMI" : "ami-dccfc0dd"
+              "AMI" : "ami-0c05160d"
           },
 
           "sa-east-1" : {
-              "AMI" : "ami-c904b4d4"
+              "AMI" : "ami-23b00d3e"
           },
 
           "ap-southeast-2" : {
-              "AMI" : "ami-d7e981ed"
+              "AMI" : "ami-b7295c8d"
           },
 
           "ap-southeast-1" : {
-              "AMI" : "ami-81406fd3"
+              "AMI" : "ami-b40f27e6"
           },
 
           "us-east-1" : {
-              "AMI" : "ami-7e5d3d16"
+              "AMI" : "ami-3c750854"
           },
 
           "us-west-2" : {
-              "AMI" : "ami-4fd4857f"
+              "AMI" : "ami-bd2d728d"
           },
 
           "us-west-1" : {
-              "AMI" : "ami-15fae850"
+              "AMI" : "ami-8d534dc8"
           },
 
           "eu-west-1" : {
-              "AMI" : "ami-7a3a840d"
+              "AMI" : "ami-f96dec8e"
           }
 
       }
   },
   "Parameters": {
     "InstanceType" : {
-      "Description" : "EC2 PV instance type (m3.medium, etc). Note: m1.small is not supported.",
+      "Description" : "EC2 HVM instance type (m3.medium, etc).",
       "Type" : "String",
-      "Default" : "m3.medium",
-      "AllowedValues" : ["m3.medium", "m3.large", "m3.xlarge", "m3.2xlarge", "m1.medium", "m1.large", "m1.xlarge", "c3.large", "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge", "c1.medium", "c1.xlarge", "m2.xlarge", "m2.2xlarge", "m2.4xlarge", "hi1.4xlarge", "hs1.8xlarge", "t1.micro"],
-      "ConstraintDescription" : "Must be a valid EC2 PV instance type. Note: m1.small is not supported."
+      "Default" : "t2.micro",
+      "ConstraintDescription" : "Must be a valid EC2 HVM instance type."
     },
     "ClusterSize": {
       "Default": "1",
       "MinValue": "1",
       "MaxValue": "12",
-      "Description": "Number of nodes in cluster (1-12).",
+      "Description": "Number of nodes in cluster (3-12).",
       "Type": "Number"
     },
     "DiscoveryURL": {
@@ -74,30 +73,10 @@
     },
     "KeyPair" : {
       "Description" : "The name of an EC2 Key Pair to allow SSH access to the instance.",
-      "Type" : "String",
-      "Default": "tfs-podipo"
+      "Type" : "String"
     }
   },
   "Resources": {
-    "ElasticLoadBalancer" : {
-      "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
-      "Properties" : {
-        "AvailabilityZones" : { "Fn::GetAZs" : "" },
-        "CrossZone" : "true",
-        "Listeners" : [ {
-          "LoadBalancerPort" : "80",
-          "InstancePort" : "9000",
-          "Protocol" : "HTTP"
-        } ],
-        "HealthCheck" : {
-          "Target" : "HTTP:9000/",
-          "HealthyThreshold" : "3",
-          "UnhealthyThreshold" : "5",
-          "Interval" : "10",
-          "Timeout" : "5"
-        }
-      }
-    },
     "CoreOSSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
@@ -130,14 +109,26 @@
         } 
       }
     },
-    "Ingress5432": {
-      "Type": "AWS::EC2::SecurityGroupIngress",
-      "Properties": {
-        "GroupName": {"Ref": "CoreOSSecurityGroup"}, "IpProtocol": "tcp", "FromPort": "5432", "ToPort": "5432", "SourceSecurityGroupId": {
-          "Fn::GetAtt" : [ "CoreOSSecurityGroup", "GroupId" ] 
+    "ElasticLoadBalancer" : {
+      "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties" : {
+        "AvailabilityZones" : { "Fn::GetAZs" : "" },
+        "CrossZone" : "true",
+        "Listeners" : [ {
+          "LoadBalancerPort" : "80",
+          "InstancePort" : "9000",
+          "Protocol" : "HTTP"
+        } ],
+        "HealthCheck" : {
+          "Target" : "HTTP:9000/",
+          "HealthyThreshold" : "3",
+          "UnhealthyThreshold" : "5",
+          "Interval" : "10",
+          "Timeout" : "5"
         }
       }
     },
+
     "CoreOSServerAutoScale": {
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties": {
