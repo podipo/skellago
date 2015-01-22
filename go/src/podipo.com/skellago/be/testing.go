@@ -17,6 +17,7 @@ import (
 
 	"github.com/codegangsta/negroni"
 	"github.com/goincremental/negroni-sessions"
+	"github.com/goincremental/negroni-sessions/cookiestore"
 )
 
 var (
@@ -95,7 +96,7 @@ Create and cleanup (synchronously) like so:
 func NewTestAPI() (*TestAPI, error) {
 	// Set up the usual API + Negroni
 	negServer := negroni.New() // add negroni.NewLogger() to see all requests
-	store := sessions.NewCookieStore([]byte(TestSessionSecret))
+	store := cookiestore.New([]byte(TestSessionSecret))
 	negServer.Use(sessions.Sessions(TestSessionCookie, store))
 	tempDir, err := ioutil.TempDir(os.TempDir(), "test-api-fs")
 	if err != nil {
