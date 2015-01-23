@@ -8,12 +8,15 @@ BUILD_TAG := podipo/gobuild
 # Local container tags
 # API_TAG is used in dev
 API_TAG := skella:dev
+
 # API_REPO_TAG is pushed to docker hub
 API_REPO_TAG := podipo/skella
-API_NAME := api
+
+# The dockerhub name for our postgres image
 POSTGRES_TAG := postgres
+
+# Our local docker name for the postgres image
 POSTGRES_NAME := pg
-TEST_NAME := test
 
 # TODO: Load these from a config file which is .gitignore'd
 API_PORT := 9000
@@ -28,10 +31,10 @@ FILE_STORAGE_DIR := /file_storage
 POSTGRES_AUTH_ARGS := -e POSTGRES_USER=$(POSTGRES_USER) -e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) 
 POSTGRES_ARGS := $(POSTGRES_AUTH_ARGS) -e POSTGRES_DB_NAME=$(POSTGRES_DB_NAME)
 
-DOCKER_TEST_ARGS := $(POSTGRES_AUTH_ARGS) -e POSTGRES_DB_NAME=$(POSTGRES_TEST_DB_NAME) --link $(POSTGRES_NAME):postgres
+DOCKER_TEST_ARGS := $(POSTGRES_AUTH_ARGS) -e POSTGRES_DB_NAME=$(POSTGRES_TEST_DB_NAME) --link $(POSTGRES_NAME):$(POSTGRES_TAG)
 
 # The list of paths to build with Go
-API_PKGS := podipo.com/skellago/...
+API_PKGS := podipo.com/skellago/... example.com/api/...
 
 COREOS_COMMAND := scripts/coreos_command.sh
 
@@ -76,6 +79,8 @@ start_api: stop_api
 
 stop_api:
 	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl stop skella-dev.service && fleetctl destroy skella-dev.service"
+	-docker kill skella 2>&1 > /dev/null
+	-docker rm skella 2>&1 > /dev/null
 
 watch_api:
 	$(COREOS_COMMAND) "journalctl -f -u skella-dev.service"
@@ -98,6 +103,8 @@ start_postgres:
 stop_postgres:
 	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl stop postgres-sidekick.service && fleetctl destroy postgres-sidekick.service"
 	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl stop postgres.service && fleetctl destroy postgres.service"
+	-docker kill pg 2>&1 > /dev/null
+	-docker rm pg 2>&1 > /dev/null
 
 psql:
 	scripts/db_shell.sh $(POSTGRES_USER) $(POSTGRES_PASSWORD)
