@@ -67,7 +67,26 @@ skella.schema.Model = Backbone.Model.extend({
 	url: function(){
 		return skella.schema.generateURL(this.schema.path, this.attributes);
 	},
-	sync: skella.schema.versionedSync
+	sync: skella.schema.versionedSync,
+	rawGet: function(parameterMap, successCallback, errorCallback){
+		var parameters = [];
+		for(var key in parameterMap){
+			parameters[parameters.length] = encodeURIComponent(key) + '=' + encodeURIComponent(parameterMap[key]);
+		}
+		var url = this.url();
+		if(parameters.length > 0){
+			url += '?' + parameters.join('&');
+		}
+		$.ajax({
+			url: url,
+			method: 'get',
+			headers :  {
+				'Accept': skella.schema.acceptFormat + window.API_VERSION
+			},
+			success: successCallback,
+			error: errorCallback
+		});
+	}
 });
 
 skella.schema.Schema = Backbone.Model.extend({

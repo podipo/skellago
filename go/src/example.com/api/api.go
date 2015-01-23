@@ -93,11 +93,13 @@ func main() {
 	server.Use(static)
 
 	api := be.NewAPI("/api/"+VERSION, VERSION, fs)
+	api.AddResource(NewEchoResource(), true)
+
 	server.UseHandler(api.Mux)
 	server.Run(":" + strconv.FormatInt(port, 10))
 }
 
 type EtcPostgresData struct {
-	Host string `json:host`
-	Port int    `json:port`
+	Host string `json:"host"`
+	Port int    `json:"port"`
 }
