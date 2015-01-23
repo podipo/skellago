@@ -23,10 +23,9 @@ var EchoProperties = []be.Property{
 	},
 }
 
-// This is the struct that will be serialized to JSON and returned
-// This is the struct that will be serialized to JSON and returned
-// This is the struct that will be serialized to JSON and returned
-// This is the struct that will be serialized to JSON and returned
+/*
+EchoResponse is the struct that will be serialized to JSON and returned
+*/
 type EchoResponse struct {
 	Text string    `json:"text"`
 	Time time.Time `json:"time"`

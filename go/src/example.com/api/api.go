@@ -20,8 +20,6 @@ var VERSION = "0.1.0"
 var logger = log.New(os.Stdout, "[api] ", 0)
 
 func main() {
-	logger.Print("Starting example.com")
-
 	// Get the required environment variables
 	port, err := strconv.ParseInt(os.Getenv("PORT"), 10, 64)
 	if err != nil {
