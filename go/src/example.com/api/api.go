@@ -71,6 +71,11 @@ func main() {
 		logger.Panic("DB Registration Error: " + err.Error())
 		return
 	}
+	err = migrateDB()
+	if err != nil {
+		logger.Panic("DB Migration Error: " + err.Error())
+		return
+	}
 
 	fs, err := be.NewLocalFileStorage(fsDir)
 	if err != nil {

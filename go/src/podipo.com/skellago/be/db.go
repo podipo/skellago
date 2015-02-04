@@ -4,10 +4,13 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/coocood/qbs"
 	_ "github.com/lib/pq" // Needed to make the postgres driver available
 )
+
+var NilTime = new(time.Time) // NilTime.Equal(record.field) will reveal whether the timestamp is set
 
 var DBName = os.Getenv("POSTGRES_DB_NAME")
 var DBUser = os.Getenv("POSTGRES_USER")
