@@ -175,6 +175,28 @@ func (client *Client) PostJSON(url string, data interface{}) (resp *http.Respons
 	return client.SendJSON("POST", url, data)
 }
 
+func (client *Client) PostAndReceiveJSON(url string, data interface{}, target interface{}) (err error) {
+	return client.SendAndReceiveJSON("POST", url, data, target)
+}
+
+func (client *Client) PutAndReceiveJSON(url string, data interface{}, target interface{}) (err error) {
+	return client.SendAndReceiveJSON("PUT", url, data, target)
+}
+
+func (client *Client) SendAndReceiveJSON(method string, url string, data interface{}, target interface{}) (err error) {
+	response, err := client.SendJSON(method, url, data)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	err = json.NewDecoder(response.Body).Decode(target)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
 func (client *Client) PutJSON(url string, data interface{}) (resp *http.Response, err error) {
 	return client.SendJSON("PUT", url, data)
 }

@@ -46,7 +46,7 @@ var UserProperties = []Property{
 	},
 }
 
-var UsersProperties = make([]Property, len(APIListProperties))
+var UsersProperties = NewAPIListProperties("user")
 
 var UserImageProperties = []Property{
 	Property{
@@ -55,15 +55,6 @@ var UserImageProperties = []Property{
 		DataType:    "file",
 		Optional:    false,
 	},
-}
-
-func init() {
-	for index, property := range APIListProperties {
-		UsersProperties[index] = property
-		if UsersProperties[index].Name == "objects" {
-			UsersProperties[index].ChildrenType = "user"
-		}
-	}
 }
 
 type LoginData struct {

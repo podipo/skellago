@@ -11,6 +11,8 @@ import (
 	"github.com/codegangsta/negroni"
 	"github.com/goincremental/negroni-sessions"
 	"github.com/goincremental/negroni-sessions/cookiestore"
+
+	"example.com/api/cms"
 	"podipo.com/skellago/be"
 )
 
@@ -99,6 +101,8 @@ func main() {
 
 	api := be.NewAPI("/api/"+VERSION, VERSION, fs)
 	api.AddResource(NewEchoResource(), true)
+	api.AddResource(cms.NewLogsResource(), true)
+	api.AddResource(cms.NewLogResource(), true)
 
 	server.UseHandler(api.Mux)
 	server.Run(":" + strconv.FormatInt(port, 10))

@@ -18,6 +18,10 @@ type Log struct {
 	Image   string `json:"image"`
 }
 
+func (*Log) Indexes(indexes *qbs.Indexes) {
+	indexes.AddUnique("slug")
+}
+
 /*
 Entry is a post to a Log
 */
@@ -72,6 +76,12 @@ func UpdateLog(log *Log, db *qbs.Qbs) error {
 func FindLogs(offset int, limit int, q *qbs.Qbs) ([]*Log, error) {
 	var logs []*Log
 	err := q.Limit(limit).Offset(offset).FindAll(&logs)
+	return logs, err
+}
+
+func FindPublicLogs(offset int, limit int, q *qbs.Qbs) ([]*Log, error) {
+	var logs []*Log
+	err := q.Limit(limit).Offset(offset).WhereEqual("publish", true).FindAll(&logs)
 	return logs, err
 }
 

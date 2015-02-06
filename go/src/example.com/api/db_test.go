@@ -34,7 +34,15 @@ func TestLog(t *testing.T) {
 	AssertEqual(t, log1.Id, log2.Id)
 	AssertEqual(t, slug1, log2.Slug)
 
+	logs1, err := cms.FindLogs(0, 100, db)
+	AssertNil(t, err)
+	AssertEqual(t, 1, len(logs1))
+	logs1, err = cms.FindPublicLogs(0, 100, db)
+	AssertNil(t, err)
+	AssertEqual(t, 0, len(logs1))
+
 	log2.Name = "Blargh Blargh"
+	log2.Publish = true
 	err = cms.UpdateLog(log2, db)
 	AssertNil(t, err)
 
@@ -42,6 +50,14 @@ func TestLog(t *testing.T) {
 	AssertNil(t, err)
 	AssertEqual(t, log1.Id, log3.Id)
 	AssertEqual(t, log2.Name, log3.Name)
+	Assert(t, log3.Publish)
+
+	logs1, err = cms.FindLogs(0, 100, db)
+	AssertNil(t, err)
+	AssertEqual(t, 1, len(logs1))
+	logs1, err = cms.FindPublicLogs(0, 100, db)
+	AssertNil(t, err)
+	AssertEqual(t, 1, len(logs1))
 
 	entry1, err := cms.CreateEntry(log3, "Title 1", "title-1", "Content 1", db)
 	AssertNil(t, err)
