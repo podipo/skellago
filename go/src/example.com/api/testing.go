@@ -17,5 +17,7 @@ func NewTestAPI() (*be.TestAPI, error) {
 	api.API.AddResource(NewEchoResource(), true)
 	api.API.AddResource(cms.NewLogsResource(), true)
 	api.API.AddResource(cms.NewLogResource(), true)
+	api.API.AddResource(cms.NewLogEntriesResource(), true)
+	api.API.AddResource(cms.NewEntryResource(), true)
 	return api, err
 }

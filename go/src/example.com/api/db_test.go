@@ -63,7 +63,7 @@ func TestLog(t *testing.T) {
 	AssertNil(t, err)
 	AssertEqual(t, "Title 1", entry1.Subject)
 
-	entries, err := cms.FindEntries(0, 100, db)
+	entries, err := cms.FindLogEntries(log3.Id, 0, 100, db)
 	AssertNil(t, err)
 	AssertEqual(t, 1, len(entries))
 
@@ -74,7 +74,7 @@ func TestLog(t *testing.T) {
 	AssertNotNil(t, entry2.Updated)
 	Assert(t, be.NilTime.Equal(entry2.Issued), fmt.Sprintf("Issued: %v", entry2.Issued))
 
-	entries, err = cms.FindEntries(0, 100, db)
+	entries, err = cms.FindLogEntries(log3.Id, 0, 100, db)
 	AssertNil(t, err)
 	AssertEqual(t, 2, len(entries))
 

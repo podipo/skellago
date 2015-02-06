@@ -80,6 +80,70 @@ func TestLogAPI(t *testing.T) {
 	err = staffClient.GetJSON("/log/"+log3.Slug, log5)
 	AssertNil(t, err)
 	AssertLogsEqual(t, log3, log5)
+
+	log5.Publish = true
+	err = staffClient.PutAndReceiveJSON("/log/"+log5.Slug, &log5, log5)
+	AssertNil(t, err, "Users should not be able to update logs")
+
+	list, err = userClient.GetList("/log/")
+	AssertNil(t, err)
+	AssertNotNil(t, list.Objects, "User should now see the log since it's published")
+	objs = list.Objects.([]interface{})
+	AssertEqual(t, 1, len(objs))
+
+	list, err = userClient.GetList("/log/" + log5.Slug + "/entries")
+	AssertNil(t, err)
+	AssertNil(t, list.Objects, "There should be no entries in this log")
+
+	entry1 := cms.Entry{
+		LogId:   log5.Id,
+		Subject: "Furst Pohst",
+		Slug:    "furst-post",
+		Content: "Loohk Ohut, Heah Ih Cohm",
+		Publish: false,
+	}
+	entry2 := new(cms.Entry)
+	err = userClient.PostAndReceiveJSON("/log/"+log5.Slug, &entry1, entry2)
+	AssertNotNil(t, err)
+	err = staffClient.PostAndReceiveJSON("/log/"+log5.Slug, &entry1, entry2)
+	AssertNil(t, err)
+
+	list, err = userClient.GetList("/log/" + log5.Slug + "/entries")
+	AssertNil(t, err)
+	AssertNil(t, list.Objects, "There should be no entries in this log")
+
+	list, err = staffClient.GetList("/log/" + log5.Slug + "/entries")
+	AssertNil(t, err)
+	AssertNotNil(t, list.Objects, "Staff should see the entry")
+	objs = list.Objects.([]interface{})
+	AssertEqual(t, 1, len(objs))
+
+	entry3 := cms.Entry{
+		LogId:   log5.Id,
+		Subject: "Secund Pohst",
+		Slug:    "secund-post",
+		Content: "Loohk Ohut, Heah Ih Cohm Agahn",
+		Publish: true,
+	}
+	entry4 := new(cms.Entry)
+	err = staffClient.PostAndReceiveJSON("/log/"+log5.Slug, &entry3, entry4)
+	AssertNil(t, err)
+
+	list, err = userClient.GetList("/log/" + log5.Slug + "/entries")
+	AssertNil(t, err)
+	AssertNotNil(t, list.Objects, "User should see the entry")
+	objs = list.Objects.([]interface{})
+	AssertEqual(t, 1, len(objs), "User should see one entry")
+
+	list, err = staffClient.GetList("/log/" + log5.Slug + "/entries")
+	AssertNil(t, err)
+	AssertNotNil(t, list.Objects, "Staff should see both entries")
+	objs = list.Objects.([]interface{})
+	AssertEqual(t, 2, len(objs))
+
+	entry5 := new(cms.Entry)
+	err = staffClient.GetJSON("/entry/"+entry4.Slug, entry5)
+	AssertNil(t, err)
 }
 
 func AssertLogsEqual(t *testing.T, log1 *cms.Log, log2 *cms.Log) {

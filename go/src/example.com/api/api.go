@@ -103,6 +103,8 @@ func main() {
 	api.AddResource(NewEchoResource(), true)
 	api.AddResource(cms.NewLogsResource(), true)
 	api.AddResource(cms.NewLogResource(), true)
+	api.AddResource(cms.NewLogEntriesResource(), true)
+	api.AddResource(cms.NewEntryResource(), true)
 
 	server.UseHandler(api.Mux)
 	server.Run(":" + strconv.FormatInt(port, 10))

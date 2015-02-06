@@ -46,7 +46,7 @@ func NewSchemaResource(api *API) *SchemaResource {
 
 func (SchemaResource) Name() string  { return "schema" }
 func (SchemaResource) Path() string  { return "/schema" }
-func (SchemaResource) Title() string { return "The schema for this web API" }
+func (SchemaResource) Title() string { return "API Schema" }
 func (SchemaResource) Description() string {
 	return "Use this JSON schema to implement your front end API wrapper."
 }

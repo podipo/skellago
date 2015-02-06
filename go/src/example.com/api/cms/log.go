@@ -120,9 +120,21 @@ func UpdateEntry(entry *Entry, db *qbs.Qbs) error {
 	return nil
 }
 
-func FindEntries(offset int, limit int, q *qbs.Qbs) ([]*Entry, error) {
+func FindEntryBySlug(slug string, db *qbs.Qbs) (*Entry, error) {
+	entry := new(Entry)
+	err := db.WhereEqual("entry.slug", slug).Find(entry)
+	return entry, err
+}
+
+func FindLogEntries(logId int64, offset int, limit int, db *qbs.Qbs) ([]*Entry, error) {
 	var entries []*Entry
-	err := q.Limit(limit).Offset(offset).FindAll(&entries)
+	err := db.Limit(limit).Offset(offset).WhereEqual("log_id", logId).FindAll(&entries)
+	return entries, err
+}
+
+func FindPublicLogEntries(logId int64, offset int, limit int, db *qbs.Qbs) ([]*Entry, error) {
+	var entries []*Entry
+	err := db.Limit(limit).Offset(offset).WhereEqual("log_id", logId).WhereEqual("entry.publish", true).FindAll(&entries)
 	return entries, err
 }
 
