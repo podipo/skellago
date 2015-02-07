@@ -213,9 +213,9 @@ func (resource LogResource) Put(request *be.APIRequest) (int, interface{}, http.
 	log.Tagline = logUpdate.Tagline
 	err = UpdateLog(log, request.DB)
 	if err != nil {
-		return 404, be.APIError{
-			Id:      "bad_log_update",
-			Message: "Could not update the log",
+		return 400, be.APIError{
+			Id:      "bad_entry_update",
+			Message: "Could not update the entry",
 			Error:   err.Error(),
 		}, responseHeader
 	}
@@ -250,7 +250,7 @@ func (resource LogResource) Post(request *be.APIRequest) (int, interface{}, http
 
 	entry, err := CreateEntry(log, newEntry.Subject, newEntry.Slug, newEntry.Content, request.DB)
 	if err != nil {
-		return 404, be.APIError{
+		return 400, be.APIError{
 			Id:      "entry_creation_error",
 			Message: "Could not create that entry",
 			Error:   err.Error(),
@@ -260,7 +260,7 @@ func (resource LogResource) Post(request *be.APIRequest) (int, interface{}, http
 	entry.Publish = newEntry.Publish
 	err = UpdateEntry(entry, request.DB)
 	if err != nil {
-		return 404, be.APIError{
+		return 400, be.APIError{
 			Id:      "entry_update_error",
 			Message: "Could not update that entry",
 			Error:   err.Error(),
@@ -370,5 +370,46 @@ func (resource EntryResource) Get(request *be.APIRequest) (int, interface{}, htt
 			return 403, be.ForbiddenError, responseHeader
 		}
 	}
+	return 200, entry, responseHeader
+}
+
+func (resource EntryResource) Put(request *be.APIRequest) (int, interface{}, http.Header) {
+	responseHeader := map[string][]string{}
+	if request.User == nil {
+		return 404, be.NotLoggedInError, responseHeader
+	}
+	if request.User.Staff == false {
+		return 403, be.ForbiddenError, responseHeader
+	}
+	slug, _ := request.PathValues["slug"]
+	entry, err := FindEntryBySlug(slug, request.DB)
+	if err != nil {
+		return 404, be.APIError{
+			Id:      "no_such_entry",
+			Message: "No such entry: " + slug,
+			Error:   err.Error(),
+		}, responseHeader
+	}
+
+	newEntry := new(Entry)
+	err = json.NewDecoder(request.Raw.Body).Decode(&newEntry)
+	if err != nil {
+		return 400, be.JSONParseError, responseHeader
+	}
+
+	entry.Content = newEntry.Content
+	entry.Issued = newEntry.Issued
+	entry.Publish = newEntry.Publish
+	entry.Slug = newEntry.Slug
+	entry.Subject = newEntry.Subject
+	err = UpdateEntry(entry, request.DB)
+	if err != nil {
+		return 400, be.APIError{
+			Id:      "entry_update_error",
+			Message: "Could not update that entry",
+			Error:   err.Error(),
+		}, responseHeader
+	}
+
 	return 200, entry, responseHeader
 }

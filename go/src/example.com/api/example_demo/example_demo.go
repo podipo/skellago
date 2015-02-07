@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/coocood/qbs"
 
@@ -42,6 +43,41 @@ func main() {
 		return
 	}
 
-	_, err = cms.CreateLog("Blargh", "blargh", db)
+	log, err := cms.CreateLog("Blargh", "blargh", db)
+	if err != nil {
+		logger.Fatal("Could not create a log", err)
+		return
+	}
+	log.Publish = true
+	err = cms.UpdateLog(log, db)
+	if err != nil {
+		logger.Fatal("Could not publish the log", err)
+		return
+	}
 
+	entry1, err := cms.CreateEntry(log, "First post", "first", "This is the first post.", db)
+	if err != nil {
+		logger.Fatal("Could not create an entry", err)
+		return
+	}
+	entry1.Publish = true
+	entry1.Issued = time.Now()
+	err = cms.UpdateEntry(entry1, db)
+	if err != nil {
+		logger.Fatal("Could not update the entry", err)
+		return
+	}
+
+	entry2, err := cms.CreateEntry(log, "Second post", "second", "This is the second post.", db)
+	if err != nil {
+		logger.Fatal("Could not create an entry", err)
+		return
+	}
+	entry2.Publish = true
+	entry2.Issued = time.Now()
+	err = cms.UpdateEntry(entry2, db)
+	if err != nil {
+		logger.Fatal("Could not update the entry", err)
+		return
+	}
 }

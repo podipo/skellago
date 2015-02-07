@@ -144,6 +144,29 @@ func TestLogAPI(t *testing.T) {
 	entry5 := new(cms.Entry)
 	err = staffClient.GetJSON("/entry/"+entry4.Slug, entry5)
 	AssertNil(t, err)
+
+	entry1.Publish = true
+	entry6 := new(cms.Entry)
+	err = staffClient.PutAndReceiveJSON("/entry/"+entry1.Slug, entry1, entry6)
+	AssertNil(t, err)
+	Assert(t, entry6.Publish, "Did not receive a published entry: %v", entry6)
+
+	entry5 = new(cms.Entry)
+	err = staffClient.GetJSON("/entry/"+entry6.Slug, entry5)
+	AssertNil(t, err)
+	AssertEqual(t, true, entry5.Publish, "After setting, Publish should be set: %v", entry5)
+
+	list, err = userClient.GetList("/log/" + log5.Slug + "/entries")
+	AssertNil(t, err)
+	AssertNotNil(t, list.Objects, "User should see the entry")
+	objs = list.Objects.([]interface{})
+	AssertEqual(t, 2, len(objs), "User should see both entries")
+
+	list, err = staffClient.GetList("/log/" + log5.Slug + "/entries")
+	AssertNil(t, err)
+	AssertNotNil(t, list.Objects, "Staff should see both entries")
+	objs = list.Objects.([]interface{})
+	AssertEqual(t, 2, len(objs))
 }
 
 func AssertLogsEqual(t *testing.T, log1 *cms.Log, log2 *cms.Log) {
