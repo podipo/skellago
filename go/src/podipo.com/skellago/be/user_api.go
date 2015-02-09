@@ -46,7 +46,7 @@ var UserProperties = []Property{
 	},
 }
 
-var UsersProperties = make([]Property, len(APIListProperties))
+var UsersProperties = NewAPIListProperties("user")
 
 var UserImageProperties = []Property{
 	Property{
@@ -55,15 +55,6 @@ var UserImageProperties = []Property{
 		DataType:    "file",
 		Optional:    false,
 	},
-}
-
-func init() {
-	for index, property := range APIListProperties {
-		UsersProperties[index] = property
-		if UsersProperties[index].Name == "objects" {
-			UsersProperties[index].ChildrenType = "user"
-		}
-	}
 }
 
 type LoginData struct {
@@ -186,7 +177,7 @@ func NewCurrentUserResource() *CurrentUserResource {
 
 func (CurrentUserResource) Name() string  { return "current-user" }
 func (CurrentUserResource) Path() string  { return "/user/current" }
-func (CurrentUserResource) Title() string { return "The logged in User" }
+func (CurrentUserResource) Title() string { return "Current user" }
 func (CurrentUserResource) Description() string {
 	return "The User in the requesting session."
 }
@@ -261,7 +252,7 @@ func NewUserResource() *UserResource {
 
 func (UserResource) Name() string  { return "user" }
 func (UserResource) Path() string  { return "/user/{uuid:[0-9,a-z,-]+}" }
-func (UserResource) Title() string { return "The user account record" }
+func (UserResource) Title() string { return "User" }
 func (UserResource) Description() string {
 	return "Each account is associated with a User."
 }
@@ -345,7 +336,7 @@ func NewUsersResource() *UsersResource {
 
 func (UsersResource) Name() string  { return "users" }
 func (UsersResource) Path() string  { return "/user/" }
-func (UsersResource) Title() string { return "A list of users" }
+func (UsersResource) Title() string { return "Users" }
 func (UsersResource) Description() string {
 	return "A list of users."
 }

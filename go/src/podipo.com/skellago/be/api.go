@@ -68,6 +68,17 @@ var APIListProperties = []Property{
 	},
 }
 
+func NewAPIListProperties(childrenType string) []Property {
+	var props = make([]Property, len(APIListProperties))
+	for index, property := range APIListProperties {
+		props[index] = property
+		if props[index].Name == "objects" {
+			props[index].ChildrenType = childrenType
+		}
+	}
+	return props
+}
+
 /*
 APIList is a data structure used when returning a list from an API resource
 */

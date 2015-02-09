@@ -11,6 +11,8 @@ import (
 	"github.com/codegangsta/negroni"
 	"github.com/goincremental/negroni-sessions"
 	"github.com/goincremental/negroni-sessions/cookiestore"
+
+	"example.com/api/cms"
 	"podipo.com/skellago/be"
 )
 
@@ -71,6 +73,11 @@ func main() {
 		logger.Panic("DB Registration Error: " + err.Error())
 		return
 	}
+	err = migrateDB()
+	if err != nil {
+		logger.Panic("DB Migration Error: " + err.Error())
+		return
+	}
 
 	fs, err := be.NewLocalFileStorage(fsDir)
 	if err != nil {
@@ -94,6 +101,10 @@ func main() {
 
 	api := be.NewAPI("/api/"+VERSION, VERSION, fs)
 	api.AddResource(NewEchoResource(), true)
+	api.AddResource(cms.NewLogsResource(), true)
+	api.AddResource(cms.NewLogResource(), true)
+	api.AddResource(cms.NewLogEntriesResource(), true)
+	api.AddResource(cms.NewEntryResource(), true)
 
 	server.UseHandler(api.Mux)
 	server.Run(":" + strconv.FormatInt(port, 10))
