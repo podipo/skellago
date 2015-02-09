@@ -49,6 +49,7 @@ func main() {
 		return
 	}
 	log.Publish = true
+	log.Tagline = "Stuff and thangs."
 	err = cms.UpdateLog(log, db)
 	if err != nil {
 		logger.Fatal("Could not publish the log", err)
