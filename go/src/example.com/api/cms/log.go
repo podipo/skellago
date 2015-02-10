@@ -126,6 +126,12 @@ func FindEntryBySlug(slug string, db *qbs.Qbs) (*Entry, error) {
 	return entry, err
 }
 
+func FindEntry(id int64, db *qbs.Qbs) (*Entry, error) {
+	entry := new(Entry)
+	err := db.WhereEqual("entry.id", id).Find(entry)
+	return entry, err
+}
+
 func FindLogEntries(logId int64, offset int, limit int, db *qbs.Qbs) ([]*Entry, error) {
 	var entries []*Entry
 	err := db.Limit(limit).Offset(offset).WhereEqual("log_id", logId).FindAll(&entries)

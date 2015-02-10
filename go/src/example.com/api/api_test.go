@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"testing"
 
 	"example.com/api/cms"
@@ -142,17 +143,21 @@ func TestLogAPI(t *testing.T) {
 	AssertEqual(t, 2, len(objs))
 
 	entry5 := new(cms.Entry)
-	err = staffClient.GetJSON("/entry/"+entry4.Slug, entry5)
-	AssertNil(t, err)
+	err = staffClient.GetJSON("/entry/"+strconv.FormatInt(entry4.Id, 10), entry5)
+	AssertNil(t, err, "Could not fetch an entry by id")
 
-	entry1.Publish = true
+	entry5 = new(cms.Entry)
+	err = staffClient.GetJSON("/entry/"+entry4.Slug, entry5)
+	AssertNil(t, err, "Could not fetch an entry by slug")
+
+	entry2.Publish = true
 	entry6 := new(cms.Entry)
-	err = staffClient.PutAndReceiveJSON("/entry/"+entry1.Slug, entry1, entry6)
+	err = staffClient.PutAndReceiveJSON("/entry/"+strconv.FormatInt(entry2.Id, 10), entry2, entry6)
 	AssertNil(t, err)
 	Assert(t, entry6.Publish, "Did not receive a published entry: %v", entry6)
 
 	entry5 = new(cms.Entry)
-	err = staffClient.GetJSON("/entry/"+entry6.Slug, entry5)
+	err = staffClient.GetJSON("/entry/"+strconv.FormatInt(entry6.Id, 10), entry5)
 	AssertNil(t, err)
 	AssertEqual(t, true, entry5.Publish, "After setting, Publish should be set: %v", entry5)
 

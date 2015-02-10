@@ -3,6 +3,7 @@ package cms
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"podipo.com/skellago/be"
 )
@@ -12,11 +13,7 @@ var EntryProperties = []be.Property{
 		Name:        "id",
 		Description: "A unique id number",
 		DataType:    "int",
-	},
-	be.Property{
-		Name:        "slug",
-		Description: "A unique, url fiendly string",
-		DataType:    "string",
+		Protected:   true,
 	},
 	be.Property{
 		Name:        "subject",
@@ -24,14 +21,36 @@ var EntryProperties = []be.Property{
 		DataType:    "string",
 	},
 	be.Property{
+		Name:        "slug",
+		Description: "A unique, url friendly string",
+		DataType:    "string",
+	},
+	be.Property{
 		Name:        "content",
 		Description: "The body",
-		DataType:    "string",
+		DataType:    "long-string",
 	},
 	be.Property{
 		Name:        "image",
 		Description: "The main image",
 		DataType:    "file",
+	},
+	be.Property{
+		Name:        "created",
+		Description: "The time the record was created",
+		DataType:    "timestamp",
+		Protected:   true,
+	},
+	be.Property{
+		Name:        "updated",
+		Description: "The last time that the record was changed",
+		DataType:    "timestamp",
+		Protected:   true,
+	},
+	be.Property{
+		Name:        "issued",
+		Description: "The time that the record went public",
+		DataType:    "timestamp",
 	},
 }
 
@@ -40,6 +59,7 @@ var LogProperties = []be.Property{
 		Name:        "id",
 		Description: "A unique id number",
 		DataType:    "int",
+		Protected:   true,
 	},
 	be.Property{
 		Name:        "name",
@@ -96,7 +116,7 @@ func (resource LogsResource) Get(request *be.APIRequest) (int, interface{}, http
 	offset, limit := be.GetOffsetAndLimit(request.Raw.Form)
 	var logs []*Log
 	var err error
-	if request.User.Staff {
+	if request.User != nil && request.User.Staff {
 		logs, err = FindLogs(offset, limit, request.DB)
 	} else {
 		logs, err = FindPublicLogs(offset, limit, request.DB)
@@ -116,6 +136,9 @@ func (resource LogsResource) Get(request *be.APIRequest) (int, interface{}, http
 	return 200, list, responseHeader
 }
 
+/*
+Post is used to create a Log
+*/
 func (resource LogsResource) Post(request *be.APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
 	if request.User == nil {
@@ -184,7 +207,9 @@ func (resource LogResource) Get(request *be.APIRequest) (int, interface{}, http.
 	return 200, log, responseHeader
 }
 
-// Put updates the Log
+/*
+Put updates the Log
+*/
 func (resource LogResource) Put(request *be.APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
 	if request.User == nil {
@@ -312,7 +337,7 @@ func (resource LogEntriesResource) Get(request *be.APIRequest) (int, interface{}
 
 	offset, limit := be.GetOffsetAndLimit(request.Raw.Form)
 	var entries []*Entry
-	if request.User.Staff {
+	if request.User != nil && request.User.Staff {
 		entries, err = FindLogEntries(log.Id, offset, limit, request.DB)
 	} else {
 		entries, err = FindPublicLogEntries(log.Id, offset, limit, request.DB)
@@ -339,8 +364,14 @@ func NewEntryResource() *EntryResource {
 	return &EntryResource{}
 }
 
-func (EntryResource) Name() string  { return "entry" }
-func (EntryResource) Path() string  { return "/entry/{slug:[0-9,a-z,-]+}" }
+func (EntryResource) Name() string { return "entry" }
+
+/*
+Path's regex is unusual because Get will respond to either a numeric id or a slug
+*/
+func (EntryResource) Path() string {
+	return "/entry/{id:[0-9,a-z,-]+}"
+}
 func (EntryResource) Title() string { return "Entry" }
 func (EntryResource) Description() string {
 	return "An entry (aka post) in a log (aka blog)"
@@ -352,12 +383,22 @@ func (resource EntryResource) Properties() []be.Property {
 
 func (resource EntryResource) Get(request *be.APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
-	slug, _ := request.PathValues["slug"]
-	entry, err := FindEntryBySlug(slug, request.DB)
+
+	// Accept either a numeric ID or a slug
+	idVal, _ := request.PathValues["id"]
+	id, err := strconv.ParseInt(idVal, 10, 64)
+	var entry *Entry
+	if err == nil {
+		// Parsed as an int, search as an id
+		entry, err = FindEntry(id, request.DB)
+	} else {
+		// Non-int id, search as a slug
+		entry, err = FindEntryBySlug(idVal, request.DB)
+	}
 	if err != nil {
 		return 404, be.APIError{
 			Id:      "no_such_entry",
-			Message: "No such entry: " + slug,
+			Message: "No such entry: " + strconv.FormatInt(id, 10),
 			Error:   err.Error(),
 		}, responseHeader
 	}
@@ -381,12 +422,22 @@ func (resource EntryResource) Put(request *be.APIRequest) (int, interface{}, htt
 	if request.User.Staff == false {
 		return 403, be.ForbiddenError, responseHeader
 	}
-	slug, _ := request.PathValues["slug"]
-	entry, err := FindEntryBySlug(slug, request.DB)
+
+	idVal, _ := request.PathValues["id"]
+	id, err := strconv.ParseInt(idVal, 10, 64)
 	if err != nil {
 		return 404, be.APIError{
 			Id:      "no_such_entry",
-			Message: "No such entry: " + slug,
+			Message: "No such entry: " + idVal,
+			Error:   err.Error(),
+		}, responseHeader
+	}
+
+	entry, err := FindEntry(id, request.DB)
+	if err != nil {
+		return 404, be.APIError{
+			Id:      "no_such_entry",
+			Message: "No such entry: " + strconv.FormatInt(id, 10),
 			Error:   err.Error(),
 		}, responseHeader
 	}

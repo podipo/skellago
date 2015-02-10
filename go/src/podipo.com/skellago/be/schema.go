@@ -28,9 +28,10 @@ type Endpoint struct {
 type Property struct {
 	Name         string `json:"name"`
 	Description  string `json:"description"`
-	DataType     string `json:"data-type"` // string, int, float, array, object, bool
+	DataType     string `json:"data-type"` // string, long-string, int, float, array, object, bool, timestamp
 	Optional     bool   `json:"optional"`
 	ChildrenType string `json:"children-type,omitempty"` // If this endpoint is a collection, this is the type
+	Protected    bool   `json:"protected"`               // True if it is not usually edited by people
 }
 
 // SchemaResource is the API resource which describes the API

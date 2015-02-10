@@ -14,6 +14,7 @@ var UserProperties = []Property{
 		Name:        "uuid",
 		Description: "uuid",
 		DataType:    "string",
+		Protected:   true,
 	},
 	Property{
 		Name:        "email",
@@ -37,12 +38,14 @@ var UserProperties = []Property{
 		Description: "Created timestamp",
 		DataType:    "date-time",
 		Optional:    true,
+		Protected:   true,
 	},
 	Property{
 		Name:        "updated-at",
 		Description: "Modified timestamp",
 		DataType:    "date-time",
 		Optional:    true,
+		Protected:   true,
 	},
 }
 

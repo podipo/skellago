@@ -13,6 +13,7 @@ skella.events.LoggedOut = 'logged-out';
 
 skella.schema.pathVariablesRegex = new RegExp('{[^{]+}', 'g');
 skella.schema.acceptFormat = "application/vnd.api+json; version="
+skella.schema.propertyTypes = ['string', 'long-string', 'int', 'float', 'array', 'object', 'bool']
 
 skella.schema.generateURL = function(path, attributes){
 		var tokens = path.match(skella.schema.pathVariablesRegex);
