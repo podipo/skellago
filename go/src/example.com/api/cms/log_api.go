@@ -174,7 +174,7 @@ func NewLogResource() *LogResource {
 }
 
 func (LogResource) Name() string  { return "log" }
-func (LogResource) Path() string  { return "/log/{slug:[0-9,a-z,-]+}" }
+func (LogResource) Path() string  { return "/log/{id:[0-9]+}" }
 func (LogResource) Title() string { return "Log" }
 func (LogResource) Description() string {
 	return "A log (some would say blog) contains a series of entries."
@@ -186,12 +186,13 @@ func (resource LogResource) Properties() []be.Property {
 
 func (resource LogResource) Get(request *be.APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
-	slug, _ := request.PathValues["slug"]
-	log, err := FindLogBySlug(slug, request.DB)
+	idVal, _ := request.PathValues["id"]
+	id, _ := strconv.ParseInt(idVal, 10, 64)
+	log, err := FindLog(id, request.DB)
 	if err != nil {
 		return 404, be.APIError{
 			Id:      "no_such_log",
-			Message: "No such log: " + slug,
+			Message: "No such log: " + idVal,
 			Error:   err.Error(),
 		}, responseHeader
 	}
@@ -218,12 +219,13 @@ func (resource LogResource) Put(request *be.APIRequest) (int, interface{}, http.
 	if request.User.Staff == false {
 		return 403, be.ForbiddenError, responseHeader
 	}
-	slug, _ := request.PathValues["slug"]
-	log, err := FindLogBySlug(slug, request.DB)
+	idVal, _ := request.PathValues["id"]
+	id, _ := strconv.ParseInt(idVal, 10, 64)
+	log, err := FindLog(id, request.DB)
 	if err != nil {
 		return 404, be.APIError{
 			Id:      "no_such_log",
-			Message: "No such log: " + slug,
+			Message: "No such log: " + strconv.FormatInt(id, 10),
 			Error:   err.Error(),
 		}, responseHeader
 	}
@@ -255,7 +257,7 @@ func NewLogEntriesResource() *LogEntriesResource {
 }
 
 func (LogEntriesResource) Name() string  { return "log-entries" }
-func (LogEntriesResource) Path() string  { return "/log/{slug:[0-9,a-z,-]+}/entries" }
+func (LogEntriesResource) Path() string  { return "/log/{id:[0-9]+}/entries" }
 func (LogEntriesResource) Title() string { return "Log entries" }
 func (LogEntriesResource) Description() string {
 	return "A list of entries in a log."
@@ -268,12 +270,13 @@ func (resource LogEntriesResource) Properties() []be.Property {
 func (resource LogEntriesResource) Get(request *be.APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
 
-	slug, _ := request.PathValues["slug"]
-	log, err := FindLogBySlug(slug, request.DB)
+	idVal, _ := request.PathValues["id"]
+	id, _ := strconv.ParseInt(idVal, 10, 64)
+	log, err := FindLog(id, request.DB)
 	if err != nil {
 		return 404, be.APIError{
 			Id:      "no_such_log",
-			Message: "No such log: " + slug,
+			Message: "No such log: " + strconv.FormatInt(id, 10),
 			Error:   err.Error(),
 		}, responseHeader
 	}
@@ -319,12 +322,13 @@ func (resource LogEntriesResource) Post(request *be.APIRequest) (int, interface{
 		return 403, be.ForbiddenError, responseHeader
 	}
 
-	slug, _ := request.PathValues["slug"]
-	log, err := FindLogBySlug(slug, request.DB)
+	idVal, _ := request.PathValues["id"]
+	id, _ := strconv.ParseInt(idVal, 10, 64)
+	log, err := FindLog(id, request.DB)
 	if err != nil {
 		return 404, be.APIError{
 			Id:      "no_such_log",
-			Message: "No such log: " + slug,
+			Message: "No such log: " + strconv.FormatInt(id, 10),
 			Error:   err.Error(),
 		}, responseHeader
 	}
@@ -381,7 +385,6 @@ func (resource EntryResource) Properties() []be.Property {
 func (resource EntryResource) Get(request *be.APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
 
-	// Accept either a numeric ID or a slug
 	idVal, _ := request.PathValues["id"]
 	id, _ := strconv.ParseInt(idVal, 10, 64)
 	entry, err := FindEntry(id, request.DB)

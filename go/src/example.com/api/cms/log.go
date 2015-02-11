@@ -85,6 +85,15 @@ func FindPublicLogs(offset int, limit int, q *qbs.Qbs) ([]*Log, error) {
 	return logs, err
 }
 
+func FindLog(id int64, db *qbs.Qbs) (*Log, error) {
+	record := new(Log)
+	err := db.WhereEqual("id", id).Find(record)
+	if err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
 func FindLogBySlug(slug string, db *qbs.Qbs) (*Log, error) {
 	return findLogByField("slug", slug, db)
 }

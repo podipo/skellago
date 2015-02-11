@@ -62,28 +62,28 @@ func TestLogAPI(t *testing.T) {
 	AssertEqual(t, 1, len(objs))
 
 	log3 := new(cms.Log)
-	err = userClient.GetJSON("/log/"+log2.Slug, log3)
+	err = userClient.GetJSON("/log/"+strconv.FormatInt(log2.Id, 10), log3)
 	AssertNotNil(t, err, "User should not see non-published log")
-	err = staffClient.GetJSON("/log/"+log2.Slug, log3)
+	err = staffClient.GetJSON("/log/"+strconv.FormatInt(log2.Id, 10), log3)
 	AssertNil(t, err)
 	AssertLogsEqual(t, log2, log3)
 
 	log3.Name = "Neu Blargh"
 	log4 := new(cms.Log)
-	err = userClient.PutAndReceiveJSON("/log/"+log3.Slug, &log3, log4)
+	err = userClient.PutAndReceiveJSON("/log/"+strconv.FormatInt(log3.Id, 10), &log3, log4)
 	AssertNotNil(t, err, "Users should not be able to update logs")
 	log4 = new(cms.Log)
-	err = staffClient.PutAndReceiveJSON("/log/"+log3.Slug, &log3, log4)
+	err = staffClient.PutAndReceiveJSON("/log/"+strconv.FormatInt(log3.Id, 10), &log3, log4)
 	AssertNil(t, err)
 	AssertEqual(t, log3.Name, log4.Name)
 
 	log5 := new(cms.Log)
-	err = staffClient.GetJSON("/log/"+log3.Slug, log5)
+	err = staffClient.GetJSON("/log/"+strconv.FormatInt(log3.Id, 10), log5)
 	AssertNil(t, err)
 	AssertLogsEqual(t, log3, log5)
 
 	log5.Publish = true
-	err = staffClient.PutAndReceiveJSON("/log/"+log5.Slug, &log5, log5)
+	err = staffClient.PutAndReceiveJSON("/log/"+strconv.FormatInt(log5.Id, 10), &log5, log5)
 	AssertNil(t, err, "Users should not be able to update logs")
 
 	list, err = userClient.GetList("/log/")
@@ -92,7 +92,7 @@ func TestLogAPI(t *testing.T) {
 	objs = list.Objects.([]interface{})
 	AssertEqual(t, 1, len(objs))
 
-	list, err = userClient.GetList("/log/" + log5.Slug + "/entries")
+	list, err = userClient.GetList("/log/" + strconv.FormatInt(log5.Id, 10) + "/entries")
 	AssertNil(t, err)
 	AssertNil(t, list.Objects, "There should be no entries in this log")
 
@@ -104,16 +104,16 @@ func TestLogAPI(t *testing.T) {
 		Publish: false,
 	}
 	entry2 := new(cms.Entry)
-	err = userClient.PostAndReceiveJSON("/log/"+log5.Slug+"/entries", &entry1, entry2)
+	err = userClient.PostAndReceiveJSON("/log/"+strconv.FormatInt(log5.Id, 10)+"/entries", &entry1, entry2)
 	AssertNotNil(t, err)
-	err = staffClient.PostAndReceiveJSON("/log/"+log5.Slug+"/entries", &entry1, entry2)
+	err = staffClient.PostAndReceiveJSON("/log/"+strconv.FormatInt(log5.Id, 10)+"/entries", &entry1, entry2)
 	AssertNil(t, err)
 
-	list, err = userClient.GetList("/log/" + log5.Slug + "/entries")
+	list, err = userClient.GetList("/log/" + strconv.FormatInt(log5.Id, 10) + "/entries")
 	AssertNil(t, err)
 	AssertNil(t, list.Objects, "There should be no entries in this log")
 
-	list, err = staffClient.GetList("/log/" + log5.Slug + "/entries")
+	list, err = staffClient.GetList("/log/" + strconv.FormatInt(log5.Id, 10) + "/entries")
 	AssertNil(t, err)
 	AssertNotNil(t, list.Objects, "Staff should see the entry")
 	objs = list.Objects.([]interface{})
@@ -127,16 +127,16 @@ func TestLogAPI(t *testing.T) {
 		Publish: true,
 	}
 	entry4 := new(cms.Entry)
-	err = staffClient.PostAndReceiveJSON("/log/"+log5.Slug+"/entries", &entry3, entry4)
+	err = staffClient.PostAndReceiveJSON("/log/"+strconv.FormatInt(log5.Id, 10)+"/entries", &entry3, entry4)
 	AssertNil(t, err)
 
-	list, err = userClient.GetList("/log/" + log5.Slug + "/entries")
+	list, err = userClient.GetList("/log/" + strconv.FormatInt(log5.Id, 10) + "/entries")
 	AssertNil(t, err)
 	AssertNotNil(t, list.Objects, "User should see the entry")
 	objs = list.Objects.([]interface{})
 	AssertEqual(t, 1, len(objs), "User should see one entry")
 
-	list, err = staffClient.GetList("/log/" + log5.Slug + "/entries")
+	list, err = staffClient.GetList("/log/" + strconv.FormatInt(log5.Id, 10) + "/entries")
 	AssertNil(t, err)
 	AssertNotNil(t, list.Objects, "Staff should see both entries")
 	objs = list.Objects.([]interface{})
@@ -157,13 +157,13 @@ func TestLogAPI(t *testing.T) {
 	AssertNil(t, err)
 	AssertEqual(t, true, entry5.Publish, "After setting, Publish should be set: %v", entry5)
 
-	list, err = userClient.GetList("/log/" + log5.Slug + "/entries")
+	list, err = userClient.GetList("/log/" + strconv.FormatInt(log5.Id, 10) + "/entries")
 	AssertNil(t, err)
 	AssertNotNil(t, list.Objects, "User should see the entry")
 	objs = list.Objects.([]interface{})
 	AssertEqual(t, 2, len(objs), "User should see both entries")
 
-	list, err = staffClient.GetList("/log/" + log5.Slug + "/entries")
+	list, err = staffClient.GetList("/log/" + strconv.FormatInt(log5.Id, 10) + "/entries")
 	AssertNil(t, err)
 	AssertNotNil(t, list.Objects, "Staff should see both entries")
 	objs = list.Objects.([]interface{})
@@ -172,7 +172,7 @@ func TestLogAPI(t *testing.T) {
 	err = staffClient.Delete("/entry/" + strconv.FormatInt(entry5.Id, 10))
 	AssertNil(t, err)
 
-	list, err = staffClient.GetList("/log/" + log5.Slug + "/entries")
+	list, err = staffClient.GetList("/log/" + strconv.FormatInt(log5.Id, 10) + "/entries")
 	AssertNil(t, err)
 	AssertNotNil(t, list.Objects, "Staff should see both entries")
 	objs = list.Objects.([]interface{})
