@@ -27,7 +27,9 @@ skella.schema.generateURL = function(path, attributes){
 			result += path.substring(index, tokenIndex);
 			index = tokenIndex + tokens[i].length;
 			var name = tokens[i].substring(1, tokens[i].length - 1).split(':')[0];
-			result += attributes[name]
+			if(typeof attributes[name] != 'undefined'){
+				result += attributes[name]
+			}
 		}
 		if(index < path.length){
 			result += path.substring(index);
@@ -58,6 +60,7 @@ skella.schema.Collection = Backbone.Collection.extend({
 	url: function(){
 		return skella.schema.generateURL(this.schema.path, this.options);
 	},
+	comparator: 'id',
 	sync: skella.schema.versionedSync
 });
 

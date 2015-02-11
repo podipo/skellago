@@ -142,7 +142,7 @@ Post is used to create a Log
 func (resource LogsResource) Post(request *be.APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
 	if request.User == nil {
-		return 401, be.NotLoggedInError, responseHeader
+		return 403, be.NotLoggedInError, responseHeader
 	}
 	if request.User.Staff == false {
 		return 403, be.ForbiddenError, responseHeader
@@ -198,7 +198,7 @@ func (resource LogResource) Get(request *be.APIRequest) (int, interface{}, http.
 	// Don't show the log if the it isn't published and this isn't a staff request
 	if log.Publish == false {
 		if request.User == nil {
-			return 404, be.NotLoggedInError, responseHeader
+			return 403, be.NotLoggedInError, responseHeader
 		}
 		if request.User.Staff == false {
 			return 403, be.ForbiddenError, responseHeader
@@ -213,7 +213,7 @@ Put updates the Log
 func (resource LogResource) Put(request *be.APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
 	if request.User == nil {
-		return 401, be.NotLoggedInError, responseHeader
+		return 403, be.NotLoggedInError, responseHeader
 	}
 	if request.User.Staff == false {
 		return 403, be.ForbiddenError, responseHeader
@@ -247,11 +247,73 @@ func (resource LogResource) Put(request *be.APIRequest) (int, interface{}, http.
 	return 200, log, responseHeader
 }
 
+type LogEntriesResource struct {
+}
+
+func NewLogEntriesResource() *LogEntriesResource {
+	return &LogEntriesResource{}
+}
+
+func (LogEntriesResource) Name() string  { return "log-entries" }
+func (LogEntriesResource) Path() string  { return "/log/{slug:[0-9,a-z,-]+}/entries" }
+func (LogEntriesResource) Title() string { return "Log entries" }
+func (LogEntriesResource) Description() string {
+	return "A list of entries in a log."
+}
+
+func (resource LogEntriesResource) Properties() []be.Property {
+	return LogEntriesProperties
+}
+
+func (resource LogEntriesResource) Get(request *be.APIRequest) (int, interface{}, http.Header) {
+	responseHeader := map[string][]string{}
+
+	slug, _ := request.PathValues["slug"]
+	log, err := FindLogBySlug(slug, request.DB)
+	if err != nil {
+		return 404, be.APIError{
+			Id:      "no_such_log",
+			Message: "No such log: " + slug,
+			Error:   err.Error(),
+		}, responseHeader
+	}
+
+	if log.Publish == false {
+		if request.User == nil {
+			return 403, be.NotLoggedInError, responseHeader
+		}
+		if request.User.Staff == false {
+			return 403, be.ForbiddenError, responseHeader
+		}
+	}
+
+	offset, limit := be.GetOffsetAndLimit(request.Raw.Form)
+	var entries []*Entry
+	if request.User != nil && request.User.Staff {
+		entries, err = FindLogEntries(log.Id, offset, limit, request.DB)
+	} else {
+		entries, err = FindPublicLogEntries(log.Id, offset, limit, request.DB)
+	}
+	if err != nil {
+		return 500, be.APIError{
+			Id:      "db_error",
+			Message: "Database error",
+			Error:   err.Error(),
+		}, responseHeader
+	}
+	list := &be.APIList{
+		Offset:  offset,
+		Limit:   limit,
+		Objects: entries,
+	}
+	return 200, list, responseHeader
+}
+
 // Post creates an Entry record
-func (resource LogResource) Post(request *be.APIRequest) (int, interface{}, http.Header) {
+func (resource LogEntriesResource) Post(request *be.APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
 	if request.User == nil {
-		return 401, be.NotLoggedInError, responseHeader
+		return 403, be.NotLoggedInError, responseHeader
 	}
 	if request.User.Staff == false {
 		return 403, be.ForbiddenError, responseHeader
@@ -295,68 +357,6 @@ func (resource LogResource) Post(request *be.APIRequest) (int, interface{}, http
 	return 200, entry, responseHeader
 }
 
-type LogEntriesResource struct {
-}
-
-func NewLogEntriesResource() *LogEntriesResource {
-	return &LogEntriesResource{}
-}
-
-func (LogEntriesResource) Name() string  { return "log-entries" }
-func (LogEntriesResource) Path() string  { return "/log/{slug:[0-9,a-z,-]+}/entries" }
-func (LogEntriesResource) Title() string { return "Log entries" }
-func (LogEntriesResource) Description() string {
-	return "A list of entries in a log."
-}
-
-func (resource LogEntriesResource) Properties() []be.Property {
-	return LogEntriesProperties
-}
-
-func (resource LogEntriesResource) Get(request *be.APIRequest) (int, interface{}, http.Header) {
-	responseHeader := map[string][]string{}
-
-	slug, _ := request.PathValues["slug"]
-	log, err := FindLogBySlug(slug, request.DB)
-	if err != nil {
-		return 404, be.APIError{
-			Id:      "no_such_log",
-			Message: "No such log: " + slug,
-			Error:   err.Error(),
-		}, responseHeader
-	}
-
-	if log.Publish == false {
-		if request.User == nil {
-			return 401, be.NotLoggedInError, responseHeader
-		}
-		if request.User.Staff == false {
-			return 403, be.ForbiddenError, responseHeader
-		}
-	}
-
-	offset, limit := be.GetOffsetAndLimit(request.Raw.Form)
-	var entries []*Entry
-	if request.User != nil && request.User.Staff {
-		entries, err = FindLogEntries(log.Id, offset, limit, request.DB)
-	} else {
-		entries, err = FindPublicLogEntries(log.Id, offset, limit, request.DB)
-	}
-	if err != nil {
-		return 500, be.APIError{
-			Id:      "db_error",
-			Message: "Database error",
-			Error:   err.Error(),
-		}, responseHeader
-	}
-	list := &be.APIList{
-		Offset:  offset,
-		Limit:   limit,
-		Objects: entries,
-	}
-	return 200, list, responseHeader
-}
-
 type EntryResource struct {
 }
 
@@ -366,11 +366,8 @@ func NewEntryResource() *EntryResource {
 
 func (EntryResource) Name() string { return "entry" }
 
-/*
-Path's regex is unusual because Get will respond to either a numeric id or a slug
-*/
 func (EntryResource) Path() string {
-	return "/entry/{id:[0-9,a-z,-]+}"
+	return "/entry/{id:[0-9]+}"
 }
 func (EntryResource) Title() string { return "Entry" }
 func (EntryResource) Description() string {
@@ -386,15 +383,8 @@ func (resource EntryResource) Get(request *be.APIRequest) (int, interface{}, htt
 
 	// Accept either a numeric ID or a slug
 	idVal, _ := request.PathValues["id"]
-	id, err := strconv.ParseInt(idVal, 10, 64)
-	var entry *Entry
-	if err == nil {
-		// Parsed as an int, search as an id
-		entry, err = FindEntry(id, request.DB)
-	} else {
-		// Non-int id, search as a slug
-		entry, err = FindEntryBySlug(idVal, request.DB)
-	}
+	id, _ := strconv.ParseInt(idVal, 10, 64)
+	entry, err := FindEntry(id, request.DB)
 	if err != nil {
 		return 404, be.APIError{
 			Id:      "no_such_entry",
@@ -405,7 +395,7 @@ func (resource EntryResource) Get(request *be.APIRequest) (int, interface{}, htt
 	// Don't show the entry if the it isn't published and this isn't a staff request
 	if entry.Log.Publish == false || entry.Publish == false {
 		if request.User == nil {
-			return 404, be.NotLoggedInError, responseHeader
+			return 403, be.NotLoggedInError, responseHeader
 		}
 		if request.User.Staff == false {
 			return 403, be.ForbiddenError, responseHeader
@@ -417,7 +407,7 @@ func (resource EntryResource) Get(request *be.APIRequest) (int, interface{}, htt
 func (resource EntryResource) Put(request *be.APIRequest) (int, interface{}, http.Header) {
 	responseHeader := map[string][]string{}
 	if request.User == nil {
-		return 404, be.NotLoggedInError, responseHeader
+		return 403, be.NotLoggedInError, responseHeader
 	}
 	if request.User.Staff == false {
 		return 403, be.ForbiddenError, responseHeader
@@ -463,4 +453,35 @@ func (resource EntryResource) Put(request *be.APIRequest) (int, interface{}, htt
 	}
 
 	return 200, entry, responseHeader
+}
+
+func (resource EntryResource) Delete(request *be.APIRequest) (int, interface{}, http.Header) {
+	responseHeader := map[string][]string{}
+	if request.User == nil {
+		return 403, be.NotLoggedInError, responseHeader
+	}
+	if request.User.Staff == false {
+		return 403, be.ForbiddenError, responseHeader
+	}
+
+	idVal, _ := request.PathValues["id"]
+	id, err := strconv.ParseInt(idVal, 10, 64)
+	if err != nil {
+		return 404, be.APIError{
+			Id:      "no_such_entry",
+			Message: "No such entry: " + idVal,
+			Error:   err.Error(),
+		}, responseHeader
+	}
+
+	_, err = DeleteEntry(id, request.DB)
+	if err != nil {
+		return 400, be.APIError{
+			Id:      "delete_error",
+			Message: "Could not delete",
+			Error:   err.Error(),
+		}, responseHeader
+	}
+
+	return 200, "Deleted", responseHeader
 }

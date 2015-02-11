@@ -104,9 +104,9 @@ func TestLogAPI(t *testing.T) {
 		Publish: false,
 	}
 	entry2 := new(cms.Entry)
-	err = userClient.PostAndReceiveJSON("/log/"+log5.Slug, &entry1, entry2)
+	err = userClient.PostAndReceiveJSON("/log/"+log5.Slug+"/entries", &entry1, entry2)
 	AssertNotNil(t, err)
-	err = staffClient.PostAndReceiveJSON("/log/"+log5.Slug, &entry1, entry2)
+	err = staffClient.PostAndReceiveJSON("/log/"+log5.Slug+"/entries", &entry1, entry2)
 	AssertNil(t, err)
 
 	list, err = userClient.GetList("/log/" + log5.Slug + "/entries")
@@ -127,7 +127,7 @@ func TestLogAPI(t *testing.T) {
 		Publish: true,
 	}
 	entry4 := new(cms.Entry)
-	err = staffClient.PostAndReceiveJSON("/log/"+log5.Slug, &entry3, entry4)
+	err = staffClient.PostAndReceiveJSON("/log/"+log5.Slug+"/entries", &entry3, entry4)
 	AssertNil(t, err)
 
 	list, err = userClient.GetList("/log/" + log5.Slug + "/entries")
@@ -145,10 +145,6 @@ func TestLogAPI(t *testing.T) {
 	entry5 := new(cms.Entry)
 	err = staffClient.GetJSON("/entry/"+strconv.FormatInt(entry4.Id, 10), entry5)
 	AssertNil(t, err, "Could not fetch an entry by id")
-
-	entry5 = new(cms.Entry)
-	err = staffClient.GetJSON("/entry/"+entry4.Slug, entry5)
-	AssertNil(t, err, "Could not fetch an entry by slug")
 
 	entry2.Publish = true
 	entry6 := new(cms.Entry)
@@ -172,6 +168,15 @@ func TestLogAPI(t *testing.T) {
 	AssertNotNil(t, list.Objects, "Staff should see both entries")
 	objs = list.Objects.([]interface{})
 	AssertEqual(t, 2, len(objs))
+
+	err = staffClient.Delete("/entry/" + strconv.FormatInt(entry5.Id, 10))
+	AssertNil(t, err)
+
+	list, err = staffClient.GetList("/log/" + log5.Slug + "/entries")
+	AssertNil(t, err)
+	AssertNotNil(t, list.Objects, "Staff should see both entries")
+	objs = list.Objects.([]interface{})
+	AssertEqual(t, 1, len(objs), "One of the entries should have been deleted")
 }
 
 func AssertLogsEqual(t *testing.T, log1 *cms.Log, log2 *cms.Log) {

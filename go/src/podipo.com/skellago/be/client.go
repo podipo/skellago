@@ -104,12 +104,28 @@ func (client *Client) GetList(url string) (*APIList, error) {
 	return list, nil
 }
 
-func (client *Client) GetJSON(url string, target interface{}) error {
+func (client *Client) Delete(url string) error {
+	req, err := client.prepRequest("DELETE", client.BaseURL+url, nil, "")
+	if err != nil {
+		return err
+	}
 	c := &http.Client{}
+	resp, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		return errors.New("Non-200 error " + strconv.Itoa(resp.StatusCode) + " deleting " + url)
+	}
+	return nil
+}
+
+func (client *Client) GetJSON(url string, target interface{}) error {
 	req, err := client.prepJSONRequest("GET", client.BaseURL+url, nil)
 	if err != nil {
 		return err
 	}
+	c := &http.Client{}
 	resp, err := c.Do(req)
 	if err != nil {
 		return err

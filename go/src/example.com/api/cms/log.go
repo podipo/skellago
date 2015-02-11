@@ -120,6 +120,12 @@ func UpdateEntry(entry *Entry, db *qbs.Qbs) error {
 	return nil
 }
 
+func DeleteEntry(id int64, q *qbs.Qbs) (affected int64, err error) {
+	record := new(Entry)
+	record.Id = id
+	return q.Delete(record)
+}
+
 func FindEntryBySlug(slug string, db *qbs.Qbs) (*Entry, error) {
 	entry := new(Entry)
 	err := db.WhereEqual("entry.slug", slug).Find(entry)
