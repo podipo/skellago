@@ -155,7 +155,9 @@ func FindLogEntries(logId int64, offset int, limit int, db *qbs.Qbs) ([]*Entry, 
 
 func FindPublicLogEntries(logId int64, offset int, limit int, db *qbs.Qbs) ([]*Entry, error) {
 	var entries []*Entry
-	err := db.Limit(limit).Offset(offset).WhereEqual("log_id", logId).WhereEqual("entry.publish", true).FindAll(&entries)
+	// Note: we cannot use chained WhereEqual calls because only the last one will be honored
+	condition := qbs.NewCondition("log_id = ?", logId).And("entry.publish = ?", true)
+	err := db.Condition(condition).FindAll(&entries)
 	return entries, err
 }
 

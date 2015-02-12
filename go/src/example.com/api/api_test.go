@@ -177,6 +177,25 @@ func TestLogAPI(t *testing.T) {
 	AssertNotNil(t, list.Objects, "Staff should see both entries")
 	objs = list.Objects.([]interface{})
 	AssertEqual(t, 1, len(objs), "One of the entries should have been deleted")
+
+	log6 := cms.Log{
+		Name:    "Binky",
+		Slug:    "binky",
+		Tagline: "Binky it!",
+		Publish: true,
+	}
+	log7 := new(cms.Log)
+	err = staffClient.PostAndReceiveJSON("/log/", &log6, log7)
+	AssertNil(t, err)
+	// Make sure that we're not seeing the other log's entries
+	list, err = staffClient.GetList("/log/" + strconv.FormatInt(log7.Id, 10) + "/entries")
+	AssertNil(t, err)
+	AssertNil(t, list.Objects, "Staff should see no entries for a new log")
+
+	// Make sure that we're not seeing the other log's entries
+	list, err = userClient.GetList("/log/" + strconv.FormatInt(log7.Id, 10) + "/entries")
+	AssertNil(t, err)
+	AssertNil(t, list.Objects, "Users should see no entries for a new log ", list.Objects)
 }
 
 func AssertLogsEqual(t *testing.T, log1 *cms.Log, log2 *cms.Log) {

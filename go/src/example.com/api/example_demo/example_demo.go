@@ -81,4 +81,30 @@ func main() {
 		logger.Fatal("Could not update the entry", err)
 		return
 	}
+
+	log2, err := cms.CreateLog("Flapdoodle and Flippers", "flapdoodle-and-flippers", db)
+	if err != nil {
+		logger.Fatal("Could not create a log", err)
+		return
+	}
+	log2.Publish = true
+	log2.Tagline = "All things F."
+	err = cms.UpdateLog(log2, db)
+	if err != nil {
+		logger.Fatal("Could not publish the log", err)
+		return
+	}
+
+	entry3, err := cms.CreateEntry(log2, "Flivvers", "flivvers", "For forest forgetfulness.", db)
+	if err != nil {
+		logger.Fatal("Could not create an entry", err)
+		return
+	}
+	entry3.Publish = true
+	entry3.Issued = time.Now()
+	err = cms.UpdateEntry(entry3, db)
+	if err != nil {
+		logger.Fatal("Could not update the entry", err)
+		return
+	}
 }

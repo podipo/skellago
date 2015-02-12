@@ -108,6 +108,10 @@ skella.schema.Schema = Backbone.Model.extend({
 	url: function(){
 		return this.options.url;
 	},
+	isStaff: function(){
+		if(this.user == null) return false;
+		return this.user.get('staff') === true;
+	},
 	populate: function(){
 		this.version = this.get('api').version;
 		for(var i in this.attributes.endpoints){
