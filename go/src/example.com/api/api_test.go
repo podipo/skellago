@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strconv"
 	"testing"
 
@@ -108,6 +109,18 @@ func TestLogAPI(t *testing.T) {
 	AssertNotNil(t, err)
 	err = staffClient.PostAndReceiveJSON("/log/"+strconv.FormatInt(log5.Id, 10)+"/entries", &entry1, entry2)
 	AssertNil(t, err)
+
+	imageUrl := "/entry/" + strconv.FormatInt(entry2.Id, 10) + "/image"
+	_, err = staffClient.GetFile(imageUrl)
+	AssertNotNil(t, err)
+	imageFile1, err := be.TempImage(os.TempDir(), 1000, 1000)
+	AssertNil(t, err)
+	response, err := staffClient.SendFile("PUT", imageUrl, "image", imageFile1)
+	AssertNil(t, err)
+	AssertEqual(t, 200, response.StatusCode)
+	reader, err := staffClient.GetFile(imageUrl)
+	AssertNil(t, err)
+	AssertNotNil(t, reader)
 
 	list, err = userClient.GetList("/log/" + strconv.FormatInt(log5.Id, 10) + "/entries")
 	AssertNil(t, err)

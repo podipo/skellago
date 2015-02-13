@@ -48,6 +48,32 @@ skella.schema.versionedSync = function(method, model, options){
 	Backbone.Model.prototype.sync.apply(this, arguments);
 }
 
+// Attached to file Models to ease the pain of posting form data
+skella.schema.sendForm = function(method, formData, successCallback, errorCallback){
+	$.ajax({
+		url: this.url(),
+		data: formData,
+		headers :  {
+			'Accept': skella.schema.acceptFormat + window.API_VERSION
+		},
+		cache: false,
+		contentType: false,
+		processData: false,
+		type: method,
+		success: successCallback,
+		error: errorCallback
+	});
+}
+
+skella.schema.fileTypeForProperty = function(propertyName){
+	for(var i=0; i < this.schema.properties.length; i++){
+		if(this.schema.properties[i].name == propertyName){
+			return this.schema.properties[i]['file-type'] || null;
+		}
+	}
+	return null;
+}
+
 skella.schema.Collection = Backbone.Collection.extend({
 	initialize: function(options){
 		this.options = options;
@@ -95,7 +121,7 @@ skella.schema.Model = Backbone.Model.extend({
 
 skella.schema.Schema = Backbone.Model.extend({
 	initialize: function(options){
-		_.bindAll(this, 'populate', 'hasProperties');
+		_.bindAll(this, 'populate', 'hasProperties', 'isStaff', 'populate', 'findAPIByName', 'getProperty', 'hasProperties');
 		this.options = options;
 		this.user = null; // Will be set to schema.api.User if the session is authenticated
 		this.api = {}; // This is where we will put the Backbone Models and Collections populated from the schema
@@ -122,7 +148,9 @@ skella.schema.Schema = Backbone.Model.extend({
 			var name = skella.schema.objectifyEndpointName(endpoint['name']);
 			this.api[name] = skella.schema.Model.extend({
 				'schema':endpoint,
-				'version':this.version
+				'version':this.version,
+				'sendForm': skella.schema.sendForm,
+				'fileTypeForProperty': skella.schema.fileTypeForProperty
 			});
 		}
 
@@ -150,6 +178,13 @@ skella.schema.Schema = Backbone.Model.extend({
 		}
 		this.populated = true;
 		this.trigger(skella.events.SchemaPopulated, this);
+	},
+	findAPIByName: function(name){
+		var objectName = skella.schema.objectifyEndpointName(name);
+		if(this.api[objectName]){
+			return this.api[objectName];
+		}
+		return null;
 	},
 	getProperty: function(properties, name){
 		for(var i=0; i < properties.length; i++){

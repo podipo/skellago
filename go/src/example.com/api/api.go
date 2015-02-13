@@ -105,6 +105,7 @@ func main() {
 	api.AddResource(cms.NewLogResource(), true)
 	api.AddResource(cms.NewLogEntriesResource(), true)
 	api.AddResource(cms.NewEntryResource(), true)
+	api.AddResource(cms.NewEntryImageResource(), false)
 
 	server.UseHandler(api.Mux)
 	server.Run(":" + strconv.FormatInt(port, 10))

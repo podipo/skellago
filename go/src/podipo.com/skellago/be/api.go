@@ -6,6 +6,7 @@ package be
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -359,4 +360,32 @@ func (api *API) createHandlerFunc(resource Resource, versioned bool) http.Handle
 		rw.WriteHeader(code)
 		rw.Write(content)
 	}
+}
+
+/*
+ServeImage responds to the request with the image in imageFile
+
+Callers within API resource method funcs (e.g. Get) should return an internally handled status:
+	return StatusInternallyHandled, nil, nil
+*/
+func (request *APIRequest) ServeImage(imageFile File) error {
+	name, err := imageFile.Name()
+	if err != nil {
+		return err
+	}
+	size, err := imageFile.Size()
+	if err != nil {
+		return err
+	}
+	reader, err := imageFile.Reader()
+	if err != nil {
+		return err
+	}
+	request.Raw.Header.Add("Content-Type", MimeTypeFromFileName(name))
+	request.Raw.Header.Add("Content-Length", strconv.FormatInt(size, 10))
+	_, err = io.Copy(request.Writer, reader)
+	if err != nil {
+		logger.Printf("Error serving an image but too late to recover %v", err)
+	}
+	return nil
 }

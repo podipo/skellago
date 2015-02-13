@@ -28,8 +28,9 @@ type Endpoint struct {
 type Property struct {
 	Name         string `json:"name"`
 	Description  string `json:"description"`
-	DataType     string `json:"data-type"` // string, long-string, int, float, array, object, bool, timestamp
-	Optional     bool   `json:"optional"`
+	DataType     string `json:"data-type"`               // string, long-string, int, float, array, object, bool, timestamp, file, image
+	Optional     bool   `json:"optional"`                // true if the property is not required
+	FileType     string `json:"file-type,omitempty"`     // If this property is a file, this is the resource name
 	ChildrenType string `json:"children-type,omitempty"` // If this endpoint is a collection, this is the type
 	Protected    bool   `json:"protected"`               // True if it is not usually edited by people
 }

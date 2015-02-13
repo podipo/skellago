@@ -33,7 +33,8 @@ var EntryProperties = []be.Property{
 	be.Property{
 		Name:        "image",
 		Description: "The main image",
-		DataType:    "file",
+		DataType:    "image",
+		FileType:    "entry-image",
 	},
 	be.Property{
 		Name:        "created",
@@ -87,6 +88,15 @@ var LogProperties = []be.Property{
 		Description: "An image associated with the log",
 		DataType:    "file",
 		Optional:    true,
+	},
+}
+
+var EntryImageProperties = []be.Property{
+	be.Property{
+		Name:        "image",
+		Description: "The multipart form encoded image representing an entry",
+		DataType:    "file",
+		Optional:    false,
 	},
 }
 
@@ -154,7 +164,7 @@ func (resource LogsResource) Post(request *be.APIRequest) (int, interface{}, htt
 	}
 	newLog, err := CreateLog(log.Name, log.Slug, request.DB)
 	if err != nil {
-		return 404, be.APIError{
+		return 400, be.APIError{
 			Id:      "log_creation_error",
 			Message: "Could not create the log",
 			Error:   err.Error(),
@@ -487,4 +497,124 @@ func (resource EntryResource) Delete(request *be.APIRequest) (int, interface{}, 
 	}
 
 	return 200, "Deleted", responseHeader
+}
+
+type EntryImageResource struct {
+}
+
+func NewEntryImageResource() *EntryImageResource {
+	return &EntryImageResource{}
+}
+
+func (EntryImageResource) Name() string  { return "entry-image" }
+func (EntryImageResource) Path() string  { return "/entry/{id:[0-9]+}/image" }
+func (EntryImageResource) Title() string { return "Entry Image" }
+func (EntryImageResource) Description() string {
+	return "The main image associated with an entry"
+}
+
+func (resource EntryImageResource) Properties() []be.Property {
+	return EntryImageProperties
+}
+
+func (resource EntryImageResource) Get(request *be.APIRequest) (int, interface{}, http.Header) {
+	responseHeader := map[string][]string{}
+
+	idVal, _ := request.PathValues["id"]
+	id, _ := strconv.ParseInt(idVal, 10, 64)
+	entry, err := FindEntry(id, request.DB)
+	if err != nil {
+		return 404, be.APIError{
+			Id:      "no_such_entry",
+			Message: "No such entry: " + strconv.FormatInt(id, 10),
+			Error:   err.Error(),
+		}, responseHeader
+	}
+
+	// Don't show the entry if it isn't published and this isn't a staff request
+	if entry.Log.Publish == false || entry.Publish == false {
+		if request.User == nil {
+			return 403, be.NotLoggedInError, responseHeader
+		}
+		if request.User.Staff == false {
+			return 403, be.ForbiddenError, responseHeader
+		}
+	}
+
+	if entry.Image == "" {
+		return 404, be.FileNotFoundError, responseHeader
+	}
+
+	imageFile, err := be.FitCrop(1400, 800, entry.Image, request.FS)
+	if err != nil {
+		logger.Print("Error with fit crop ", err.Error())
+		return 500, &be.APIError{
+			Id:      be.InternalServerError.Id,
+			Message: "Error reading image: " + request.User.Image + ": " + err.Error(),
+		}, responseHeader
+	}
+
+	err = request.ServeImage(imageFile)
+	if err != nil {
+		return 500, &be.APIError{
+			Id:      be.InternalServerError.Id,
+			Message: "Error serving image file: " + err.Error(),
+		}, responseHeader
+	}
+
+	// Indicate that the response is complete and not to process it like the usual JSON response
+	return be.StatusInternallyHandled, nil, nil
+}
+
+func (resource EntryImageResource) PutForm(request *be.APIRequest) (int, interface{}, http.Header) {
+	responseHeader := map[string][]string{}
+	if request.User == nil {
+		return 403, be.NotLoggedInError, responseHeader
+	}
+	if request.User.Staff == false {
+		return 403, be.ForbiddenError, responseHeader
+	}
+
+	idVal, _ := request.PathValues["id"]
+	id, _ := strconv.ParseInt(idVal, 10, 64)
+	entry, err := FindEntry(id, request.DB)
+	if err != nil {
+		return 404, be.APIError{
+			Id:      "no_such_entry",
+			Message: "No such entry: " + strconv.FormatInt(id, 10),
+			Error:   err.Error(),
+		}, responseHeader
+	}
+
+	file, fileHeader, err := request.Raw.FormFile("image")
+	if err != nil {
+		return http.StatusBadRequest, &be.APIError{
+			Id:      "bad_request",
+			Message: "An `image` field is required",
+		}, responseHeader
+	}
+	fileKey, err := request.FS.Put(fileHeader.Filename, file)
+	if err != nil {
+		return http.StatusInternalServerError, &be.APIError{
+			Id:      "storage_error",
+			Message: "Could not store the file: " + err.Error(),
+		}, responseHeader
+	}
+
+	oldFileKey := entry.Image
+	entry.Image = fileKey
+	err = UpdateEntry(entry, request.DB)
+	if err != nil {
+		return http.StatusInternalServerError, &be.APIError{
+			Id:      "database_error",
+			Message: "Could not update the entry: " + err.Error(),
+		}, responseHeader
+	}
+	if oldFileKey != "" {
+		err = request.FS.Delete(oldFileKey, "")
+		if err != nil {
+			logger.Print("Could not delete old image: " + err.Error())
+		}
+	}
+	return 200, "Ok", responseHeader
 }

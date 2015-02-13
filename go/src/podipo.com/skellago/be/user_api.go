@@ -2,8 +2,6 @@ package be
 
 import (
 	"fmt"
-	"io"
-	"strconv"
 
 	"encoding/json"
 	"net/http"
@@ -97,32 +95,12 @@ func (resource CurrentUserImageResource) Get(request *APIRequest) (int, interfac
 			Message: "Error reading user image: " + request.User.Image + ": " + err.Error(),
 		}, responseHeader
 	}
-	name, err := imageFile.Name()
+	err = request.ServeImage(imageFile)
 	if err != nil {
 		return 500, &APIError{
 			Id:      InternalServerError.Id,
-			Message: "Error reading file name: " + err.Error(),
+			Message: "Error serving image file: " + err.Error(),
 		}, responseHeader
-	}
-	size, err := imageFile.Size()
-	if err != nil {
-		return 500, &APIError{
-			Id:      InternalServerError.Id,
-			Message: "Error reading file size: " + err.Error(),
-		}, responseHeader
-	}
-	reader, err := imageFile.Reader()
-	if err != nil {
-		return 500, &APIError{
-			Id:      InternalServerError.Id,
-			Message: "Error fetching file reader: " + err.Error(),
-		}, responseHeader
-	}
-	request.Raw.Header.Add("Content-Type", MimeTypeFromFileName(name))
-	request.Raw.Header.Add("Content-Length", strconv.FormatInt(size, 10))
-	_, err = io.Copy(request.Writer, reader)
-	if err != nil {
-		logger.Print("Error sending image ", err.Error())
 	}
 
 	// Indicate that the response is complete and not to process it like the usual JSON response
