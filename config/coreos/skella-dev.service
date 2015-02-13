@@ -7,7 +7,7 @@ TimeoutStartSec=0
 EnvironmentFile=/etc/environment
 ExecStartPre=-/usr/bin/docker kill skella
 ExecStartPre=-/usr/bin/docker rm skella
-ExecStart=/usr/bin/docker run -e COREOS_PUBLIC_IPV4=${COREOS_PUBLIC_IPV4} -e COREOS_PRIVATE_IPV4=${COREOS_PRIVATE_IPV4} -e POSTGRES_USER=skella -e POSTGRES_PASSWORD=seekret -e POSTGRES_DB_NAME=skella -e PORT=9000 -v /file_storage -e FILE_STORAGE_DIR=/file_storage -v /docroot:/opt/root/front_end -e FRONT_END_DIR=/opt/root/front_end -e SESSION_SECRET="fr0styth3sn0wm@n" -p 9000:9000 --name skella skella:dev
+ExecStart=/usr/bin/docker run -e COREOS_PUBLIC_IPV4=${COREOS_PUBLIC_IPV4} -e COREOS_PRIVATE_IPV4=${COREOS_PRIVATE_IPV4} -e POSTGRES_USER=skella -e POSTGRES_PASSWORD=seekret -e POSTGRES_DB_NAME=skella -e PORT=9000 --volumes-from pg -e FILE_STORAGE_DIR=/file_storage -v /docroot:/opt/root/front_end -e FRONT_END_DIR=/opt/root/front_end -e SESSION_SECRET="fr0styth3sn0wm@n" -p 9000:9000 --name skella skella:dev
 ExecStop=/usr/bin/docker stop skella
 
 [X-Fleet]
