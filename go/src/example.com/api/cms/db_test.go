@@ -17,10 +17,12 @@ func TestLog(t *testing.T) {
 
 	db, err := qbs.GetQbs()
 	AssertNil(t, err)
+	logger.Print("Deferring cleanup of TestLog")
 	defer func() {
 		be.WipeDB()
 		WipeDB()
 		db.Close()
+		logger.Print("Cleaned up TestLog")
 	}()
 
 	slug1 := "blargh"

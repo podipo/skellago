@@ -78,7 +78,11 @@ install_demo:
 
 test:
 	-echo "drop database $(POSTGRES_TEST_DB_NAME)" | psql
-	$(TEST_POSTGRES_ENVS) go test -v $(API_PKGS)
+	# TODO figure out the race condition when testing example.com/...
+	# For now run these in separate go test processes
+	$(TEST_POSTGRES_ENVS) go test -v podipo.com/skellago/...
+	$(TEST_POSTGRES_ENVS) go test -v example.com/api/cms/ 
+	$(TEST_POSTGRES_ENVS) go test -v example.com/api/ 
 
 psql:
 	scripts/db_shell.sh $(POSTGRES_USER) $(POSTGRES_PASSWORD)

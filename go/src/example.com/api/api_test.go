@@ -18,10 +18,12 @@ func TestLogAPI(t *testing.T) {
 
 	db, err := qbs.GetQbs()
 	AssertNil(t, err)
+	logger.Print("Deferring TestLogAPI cleanup")
 	defer func() {
 		be.WipeDB()
 		cms.WipeDB()
 		db.Close()
+		logger.Print("Cleaned up TestLogAPI")
 	}()
 
 	testApi, err := NewTestAPI()
