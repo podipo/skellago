@@ -1,12 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/codegangsta/negroni"
 	"github.com/goincremental/negroni-sessions"
@@ -49,23 +47,6 @@ func main() {
 	logger.Print("STATIC_DIR:\t", staticDir)
 	logger.Print("FRONT_END_DIR:\t", frontEndDir)
 	logger.Print("FILE_STORAGE_DIR:\t", fsDir)
-
-	if be.DBHost == "" { // Try CoreOS etcd
-		etcdJSON, err := be.EtcdGet(os.Getenv("COREOS_PRIVATE_IPV4"), "/v2/keys/services/skella/postgres")
-		if err != nil {
-			logger.Panic("Could not parse the etcd data: " + err.Error())
-			return
-		}
-		logger.Print("Received etcd json: " + etcdJSON)
-		var postgresData EtcPostgresData
-		err = json.NewDecoder(strings.NewReader(etcdJSON)).Decode(&postgresData)
-		if err != nil {
-			logger.Panic("Could not parse the etcd data: " + etcdJSON)
-			return
-		}
-		be.DBHost = postgresData.Host
-		be.DBPort = strconv.Itoa(postgresData.Port)
-	}
 	logger.Print("DB host: ", be.DBHost, ":", be.DBPort)
 
 	err = be.InitDB()
@@ -73,7 +54,7 @@ func main() {
 		logger.Panic("DB Registration Error: " + err.Error())
 		return
 	}
-	err = migrateDB()
+	err = cms.MigrateDB()
 	if err != nil {
 		logger.Panic("DB Migration Error: " + err.Error())
 		return

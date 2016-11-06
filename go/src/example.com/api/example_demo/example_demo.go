@@ -20,6 +20,12 @@ func main() {
 		return
 	}
 
+	err = cms.MigrateDB()
+	if err != nil {
+		logger.Fatal("Could not migrate the example db", err)
+		return
+	}
+
 	db, err := qbs.GetQbs()
 	if err != nil {
 		logger.Fatal("Could not get the db", err)

@@ -1,115 +1,85 @@
-.PHONY: clean cycle_api compile_api collect_api image_api start_api stop_api go_get_deps start_postgres stop_postgres stop_all psql
+.PHONY: clean clean_deps go_get_deps lint compile_api install_demo test psql
 
-# Generally, this compiles go using a build container and then builds docker images with the results 
-
-# The remote container which will build the code
-BUILD_TAG := podipo/gobuild
-
-# Local container tags
-# API_TAG is used in dev
-API_TAG := skella:dev
-
-# API_REPO_TAG is pushed to docker hub
-API_REPO_TAG := podipo/skella
-
-# The dockerhub name for our postgres image
-POSTGRES_TAG := postgres
-
-# Our local docker name for the postgres image
-POSTGRES_NAME := pg
-
-# TODO: Load these from a config file which is .gitignore'd
-API_PORT := 9000
+PORT := 9000
 FRONT_END_DIR = $(PWD)/../skella/dist
-POSTGRES_DB_NAME := skella
-POSTGRES_TEST_DB_NAME := test
-POSTGRES_USER := skella
+
+POSTGRES_USER := trevor
 POSTGRES_PASSWORD := seekret
+POSTGRES_HOST := localhost
+POSTGRES_PORT := 5432
+
+POSTGRES_DB_NAME := skella
+POSTGRES_TEST_DB_NAME := skella_test
+
 SESSION_SECRET := "fr0styth3sn0wm@n"
-FILE_STORAGE_DIR := /file_storage
 
-POSTGRES_AUTH_ARGS := -e POSTGRES_USER=$(POSTGRES_USER) -e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) 
-POSTGRES_ARGS := $(POSTGRES_AUTH_ARGS) -e POSTGRES_DB_NAME=$(POSTGRES_DB_NAME)
+STATIC_DIR := $(PWD)/go/src/podipo.com/skellago/be/static/
+FILE_STORAGE_DIR := $(PWD)/file_storage
 
-DOCKER_TEST_ARGS := $(POSTGRES_AUTH_ARGS) -e POSTGRES_DB_NAME=$(POSTGRES_TEST_DB_NAME) --link $(POSTGRES_NAME):$(POSTGRES_TAG)
-
-# The list of paths to build with Go
 API_PKGS := podipo.com/skellago/... example.com/api/...
 
-COREOS_COMMAND := scripts/coreos_command.sh
+COMMON_POSTGRES_ENVS := POSTGRES_USER=$(POSTGRES_USER) \
+						POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
+						POSTGRES_HOST=$(POSTGRES_HOST) \
+						POSTGRES_PORT=$(POSTGRES_PORT)
 
-# The prefix for running one-off commands in transient Docker containers
-DKR_COMMAND := scripts/docker_command.sh
+API_POSTGRES_ENVS :=	$(COMMON_POSTGRES_ENVS) \
+						POSTGRES_DB_NAME=$(POSTGRES_DB_NAME)
 
-# The prefix for running commands in the build container
-DKR_BUILD := $(DKR_COMMAND) $(BUILD_TAG)
 
-all: go_get_deps image_api
+TEST_POSTGRES_ENVS := 	$(COMMON_POSTGRES_ENVS) \
+						POSTGRES_DB_NAME=$(POSTGRES_TEST_DB_NAME) 
 
-clean: stop_all
+API_RUNTIME_ENVS := 	PORT=$(PORT) \
+						STATIC_DIR=$(STATIC_DIR) \
+						FILE_STORAGE_DIR=$(FILE_STORAGE_DIR) \
+						FRONT_END_DIR=$(FRONT_END_DIR) \
+						SESSION_SECRET=$(SESSION_SECRET) \
+						$(API_POSTGRES_ENVS)
+
+all: go_get_deps compile_api
+
+clean:
 	rm -rf go/bin go/pkg deploy collect
-
-go_get_deps:
-	$(DKR_BUILD) /skellago/scripts/container/go_get_deps.sh
-
-lint:
-	$(DKR_BUILD) /skellago/scripts/container/lint.sh
 
 clean_deps:
 	rm -rf go/src/github.com go/src/labix.org go/src/code.google.com go/src/golang.org
 
-cycle_api: stop_api image_api start_api watch_api
+go_get_deps:
+	go get github.com/chai2010/assert
+	go get github.com/codegangsta/negroni
+	go get github.com/gorilla/mux
+	go get github.com/coocood/qbs
+	go get github.com/lib/pq
+	go get code.google.com/p/go.crypto/bcrypt
+	go get github.com/nu7hatch/gouuid
+	go get github.com/rs/cors
+	go get github.com/goincremental/negroni-sessions
+	go get github.com/golang/lint
+	go get github.com/nfnt/resize
+
+lint:
+	go install github.com/golang/lint/...
+	golint podipo.com/...
 
 compile_api: 
-	$(DKR_BUILD) go install -v $(API_PKGS)
+	go install -v $(API_PKGS)
 
-collect_api: compile_api
-	@FRONT_END_DIR="$(FRONT_END_DIR)" scripts/collect_front_end.sh
-	$(DKR_BUILD) /skellago/scripts/container/create_artifact.sh api
-	$(DKR_BUILD) /skellago/scripts/container/prepare_image.sh /skellago/containers/api /skellago/collect/api-artifact.tar.gz /skellago/deploy/containers/api
-
-image_api_production: collect_api
-	docker build -q --rm -t $(API_REPO_TAG) $(PWD)/deploy/containers/api
-
-image_api: collect_api
-	docker build -q --rm -t $(API_TAG) $(PWD)/deploy/containers/api
-
-start_api: stop_api
-	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl load skella-dev.service && fleetctl start skella-dev.service"
-
-stop_api:
-	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl stop skella-dev.service && fleetctl destroy skella-dev.service"
-	-docker kill skella 2>&1 > /dev/null
-	-docker rm skella 2>&1 > /dev/null
-
-watch_api:
-	$(COREOS_COMMAND) "journalctl -f -u skella-dev.service"
-
-watch_postgres:
-	$(COREOS_COMMAND) "journalctl -f -u postgres.service"
-
-list_units:
-	$(COREOS_COMMAND) "fleetctl list-units"
+run_api: compile_api
+	-mkdir $(FILE_STORAGE_DIR)
+	$(API_RUNTIME_ENVS) go/bin/api
 
 install_demo:
-	scripts/install_demo.sh $(POSTGRES_ARGS) --link $(POSTGRES_NAME):postgres $(BUILD_TAG) 
+	-echo "drop database $(POSTGRES_DB_NAME); create database $(POSTGRES_DB_NAME);" | psql
+	go install -v podipo.com/skellago/demo
+	go install -v example.com/api/example_demo
+	$(API_POSTGRES_ENVS) $(GOBIN)/demo
+	$(API_POSTGRES_ENVS) $(GOBIN)/example_demo
 
 test:
-	@DOCKER_FLAGS="$(DOCKER_TEST_ARGS)" $(DKR_BUILD) go test -v $(API_PKGS)
-
-start_postgres:
-	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl load postgres-sidekick.service postgres.service && fleetctl start postgres-sidekick.service"
-
-stop_postgres:
-	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl stop postgres-sidekick.service && fleetctl destroy postgres-sidekick.service"
-	$(COREOS_COMMAND) "cd /skellago/config/coreos && fleetctl stop postgres.service && fleetctl destroy postgres.service"
-	-docker kill pg 2>&1 > /dev/null
-	-docker rm pg 2>&1 > /dev/null
+	-echo "drop database $(POSTGRES_TEST_DB_NAME)" | psql
+	$(TEST_POSTGRES_ENVS) go test -v $(API_PKGS)
 
 psql:
 	scripts/db_shell.sh $(POSTGRES_USER) $(POSTGRES_PASSWORD)
 
-stop_all: stop_api stop_postgres
-
-image_gobuild:
-	docker build -q --rm -t $(BUILD_TAG) containers/gobuild

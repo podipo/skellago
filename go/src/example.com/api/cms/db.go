@@ -1,24 +1,22 @@
-package main
+package cms
 
 import (
 	"github.com/coocood/qbs"
-
-	"example.com/api/cms"
 )
 
-func migrateDB() error {
+func MigrateDB() error {
 	migration, err := qbs.GetMigration()
 	if err != nil {
 		return err
 	}
 	defer migration.Close()
-	migration.CreateTableIfNotExists(new(cms.Log))
-	migration.CreateTableIfNotExists(new(cms.Entry))
-	migration.CreateTableIfNotExists(new(cms.Tag))
+	migration.CreateTableIfNotExists(new(Log))
+	migration.CreateTableIfNotExists(new(Entry))
+	migration.CreateTableIfNotExists(new(Tag))
 	return nil
 }
 
-func wipeDB() error {
+func WipeDB() error {
 	db, err := qbs.GetQbs()
 	if err != nil {
 		return err

@@ -13,14 +13,14 @@ import (
 
 func TestLogAPI(t *testing.T) {
 	be.CreateAndInitDB()
-	err := migrateDB()
+	err := cms.MigrateDB()
 	AssertNil(t, err)
 
 	db, err := qbs.GetQbs()
 	AssertNil(t, err)
 	defer func() {
 		be.WipeDB()
-		wipeDB()
+		cms.WipeDB()
 		db.Close()
 	}()
 

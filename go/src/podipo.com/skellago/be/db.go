@@ -15,10 +15,11 @@ var NilTime = new(time.Time) // NilTime.Equal(record.field) will reveal whether 
 var DBName = os.Getenv("POSTGRES_DB_NAME")
 var DBUser = os.Getenv("POSTGRES_USER")
 var DBPass = os.Getenv("POSTGRES_PASSWORD")
-var DBHost = os.Getenv("POSTGRES_PORT_5432_TCP_ADDR")
-var DBPort = os.Getenv("POSTGRES_PORT_5432_TCP_PORT")
+var DBHost = os.Getenv("POSTGRES_HOST")
+var DBPort = os.Getenv("POSTGRES_PORT")
 
 var DBURLFormat = "postgres://%s:%s@%s:%s/%s?sslmode=disable"
+var DBConfigFormat = "user=%s password=%s host=%s port=%s dbname=%s sslmode=disable"
 
 func InitDB() error {
 	err := registerDB()
@@ -74,7 +75,7 @@ func WipeDB() {
 }
 
 func CreateAndInitDB() error {
-	db, err := sql.Open("postgres", fmt.Sprintf(DBURLFormat, DBUser, DBPass, DBHost, DBPort, DBUser))
+	db, err := sql.Open("postgres", fmt.Sprintf(DBConfigFormat, DBUser, DBPass, DBHost, DBPort, DBUser))
 	if err != nil {
 		logger.Print("Open Error: " + err.Error())
 		return err

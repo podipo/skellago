@@ -23,7 +23,7 @@ import (
 
 var (
 	TestVersion       = "0.T.0"
-	TestPort          = 44556677
+	TestPort          = 9998
 	TestSessionCookie = "test_session"
 	TestSessionSecret = "NotVerySecret"
 )
